@@ -126,6 +126,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* Botões para recolher/expandir blocos — só aparecem no celular */
 .toggle-add,.toggle-filtros{display:none;width:100%;margin-bottom:10px}
 .toggle-add.open,.toggle-filtros.open{background:var(--surface);color:var(--ink)}
+/* Seletor de visão (menu suspenso) — só aparece no celular */
+.nav-select{display:none;width:100%;background:var(--ink);color:var(--paper);border:0;border-radius:10px;padding:11px 12px;font-weight:700;font-size:15px}
+.nav-select:focus{outline:2px solid var(--brand);outline-offset:2px}
 .side select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px;text-overflow:ellipsis}
 @media (max-width:760px){
   .cols{grid-template-columns:1fr}
@@ -134,10 +137,9 @@ button,input,select,textarea{font:inherit;color:inherit}
   .toggle-add,.toggle-filtros{display:block}
   /* Formulário detalhado e filtros começam recolhidos; abrem via botão */
   #addForm.collapsed,#toolsBox.collapsed{display:none}
-  /* Navegação em linha com rolagem horizontal suave e sem barra visível */
-  .nav{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-  .nav::-webkit-scrollbar{display:none}
-  .nav button{width:auto;flex:0 0 auto;white-space:nowrap;scroll-snap-align:start}
+  /* No celular: esconde as abas e usa o menu suspenso (sem arrastar para o lado) */
+  .nav{display:none}
+  .nav-select{display:block;margin-bottom:12px}
   .side h3{display:none}
   /* Ferramentas: filtros lado a lado, ações ocupando a largura total */
   .side .tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0;margin-top:12px}
@@ -334,6 +336,8 @@ button,input,select,textarea{font:inherit;color:inherit}
   <div class="cols">
     <aside class="side">
       <nav class="nav" id="nav"></nav>
+      <!-- No celular, a navegação vira um menu suspenso (sem rolagem horizontal) -->
+      <select class="nav-select" id="navSelect" aria-label="Escolher visão"></select>
       <h3>Filtros</h3>
       <!-- No celular, filtros e ações ficam recolhidos; este botão os abre -->
       <button class="btn ghost toggle-filtros" id="toggleFiltros" type="button" aria-expanded="false" aria-controls="toolsBox">Filtrar e opções ▾</button>
@@ -623,14 +627,23 @@ function renderHeader(){
 }
 function renderNav(){
   const all = [...tasks.values()].filter(matches);
+  const contagem = {};
+  for (const v of VIEWS){
+    if (v.v !== "historico" && v.v !== "concluidas") contagem[v.v] = all.filter(t=>inView(t,v.v)).length;
+  }
+  // Abas (desktop)
   $("nav").innerHTML = VIEWS.map(v=>{
     let n = "";
-    if (v.v !== "historico" && v.v !== "concluidas"){
-      const c = all.filter(t=>inView(t,v.v)).length;
+    if (contagem[v.v] !== undefined){
       const hasLate = v.v==="hoje" && all.some(t=>urg(t)==="late");
-      n = `<span class="n${hasLate?" late":""}">${c}</span>`;
+      n = `<span class="n${hasLate?" late":""}">${contagem[v.v]}</span>`;
     }
     return `<button type="button" data-view="${v.v}" class="${view===v.v?"on":""}">${esc(v.l)}${n}</button>`;
+  }).join("");
+  // Menu suspenso (celular) — mesma informação, com a contagem no texto
+  $("navSelect").innerHTML = VIEWS.map(v=>{
+    const n = contagem[v.v] !== undefined ? ` (${contagem[v.v]})` : "";
+    return `<option value="${v.v}" ${view===v.v?"selected":""}>${esc(v.l)}${n}</option>`;
   }).join("");
 }
 function clientes(){
@@ -952,6 +965,7 @@ $("addForm").addEventListener("submit", e=>{
   }
 });
 $("nav").addEventListener("click", e=>{ const b=e.target.closest("[data-view]"); if(!b) return; view=b.dataset.view; renderNav(); renderContent(); });
+$("navSelect").addEventListener("change", e=>{ view=e.target.value; renderNav(); renderContent(); });
 $("pulse").addEventListener("click", e=>{ const b=e.target.closest("[data-go]"); if(!b) return; view=b.dataset.go; renderNav(); renderContent(); });
 $("fCliente").addEventListener("change", e=>{ fCliente=e.target.value; renderNav(); renderContent(); });
 $("fGrupo").addEventListener("change", e=>{ fGrupo=e.target.value; renderContent(); });
