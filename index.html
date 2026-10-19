@@ -123,10 +123,17 @@ button,input,select,textarea{font:inherit;color:inherit}
 .side .tools{margin-top:18px;display:flex;flex-direction:column;gap:6px;padding:0 4px}
 .more{display:flex;flex-direction:column;gap:6px;margin-top:2px}
 #moreBtn.open{background:var(--surface);color:var(--ink)}
+/* Botões para recolher/expandir blocos — só aparecem no celular */
+.toggle-add,.toggle-filtros{display:none;width:100%;margin-bottom:10px}
+.toggle-add.open,.toggle-filtros.open{background:var(--surface);color:var(--ink)}
 .side select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px;text-overflow:ellipsis}
 @media (max-width:760px){
   .cols{grid-template-columns:1fr}
   .side{position:static}
+  /* Mostra os botões de recolher no celular */
+  .toggle-add,.toggle-filtros{display:block}
+  /* Formulário detalhado e filtros começam recolhidos; abrem via botão */
+  #addForm.collapsed,#toolsBox.collapsed{display:none}
   /* Navegação em linha com rolagem horizontal suave e sem barra visível */
   .nav{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .nav::-webkit-scrollbar{display:none}
@@ -307,6 +314,9 @@ button,input,select,textarea{font:inherit;color:inherit}
     <p class="qa-hint">Dica: inclua um nome de cliente e um prazo (hoje, amanhã, segunda, 25/12, às 14h) que o sistema separa automaticamente.</p>
   </section>
 
+  <!-- No celular, o formulário detalhado fica recolhido; este botão o abre -->
+  <button class="btn ghost toggle-add" id="toggleAdd" type="button" aria-expanded="false" aria-controls="addForm">+ Nova tarefa (detalhada)</button>
+
   <form class="add" id="addForm" autocomplete="off">
     <input class="title" id="aTitle" placeholder="O que precisa ser feito?" required maxlength="200">
     <input id="aCliente" list="clientes" placeholder="Cliente" maxlength="60">
@@ -325,7 +335,9 @@ button,input,select,textarea{font:inherit;color:inherit}
     <aside class="side">
       <nav class="nav" id="nav"></nav>
       <h3>Filtros</h3>
-      <div class="tools">
+      <!-- No celular, filtros e ações ficam recolhidos; este botão os abre -->
+      <button class="btn ghost toggle-filtros" id="toggleFiltros" type="button" aria-expanded="false" aria-controls="toolsBox">Filtrar e opções ▾</button>
+      <div class="tools" id="toolsBox">
         <select id="fCliente" aria-label="Filtrar por cliente"></select>
         <select id="fGrupo" aria-label="Agrupar">
           <option value="">Sem agrupamento</option>
@@ -931,7 +943,13 @@ $("addForm").addEventListener("submit", e=>{
     toastInfo(t.prazoData ? "Tarefa adicionada. Ela aparece em Próximos 7 dias ou Todas em aberto." : "Tarefa adicionada em Todas em aberto.");
   }
   $("aTitle").value = ""; $("aData").value = ""; $("aHora").value = ""; $("aPrio").value = "media";
-  $("aTitle").focus();
+  // No celular, recolhe o formulário de novo após adicionar (deixa a lista em foco)
+  if (window.matchMedia("(max-width:760px)").matches){
+    $("addForm").classList.add("collapsed");
+    const b = $("toggleAdd"); b.classList.remove("open"); b.setAttribute("aria-expanded","false"); b.textContent = "+ Nova tarefa (detalhada)";
+  } else {
+    $("aTitle").focus();
+  }
 });
 $("nav").addEventListener("click", e=>{ const b=e.target.closest("[data-view]"); if(!b) return; view=b.dataset.view; renderNav(); renderContent(); });
 $("pulse").addEventListener("click", e=>{ const b=e.target.closest("[data-go]"); if(!b) return; view=b.dataset.go; renderNav(); renderContent(); });
@@ -1004,6 +1022,23 @@ $("moreBtn").addEventListener("click", ()=>{
   btn.setAttribute("aria-expanded", String(aberto));
   btn.textContent = aberto ? "Menos opções ▴" : "Mais opções ▾";
 });
+
+/* ---------- Recolher/expandir blocos no celular ---------- */
+// Começam recolhidos (a classe só tem efeito visual no mobile, via CSS).
+$("addForm").classList.add("collapsed");
+$("toolsBox").classList.add("collapsed");
+function ligarToggle(btnId, boxId, textoFechar, textoAbrir){
+  const btn = $(btnId), box = $(boxId);
+  btn.addEventListener("click", ()=>{
+    const aberto = box.classList.toggle("collapsed") === false;
+    btn.classList.toggle("open", aberto);
+    btn.setAttribute("aria-expanded", String(aberto));
+    btn.textContent = aberto ? textoFechar : textoAbrir;
+    if (aberto && boxId==="addForm") setTimeout(()=>$("aTitle").focus(), 50);
+  });
+}
+ligarToggle("toggleAdd", "addForm", "− Fechar formulário", "+ Nova tarefa (detalhada)");
+ligarToggle("toggleFiltros", "toolsBox", "Fechar filtros ▴", "Filtrar e opções ▾");
 $("exportBtn").addEventListener("click", exportCSV);
 $("backupBtn").addEventListener("click", backup);
 $("restoreBtn").addEventListener("click", ()=>$("restoreFile").click());
