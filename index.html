@@ -121,6 +121,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav .n.late{background:var(--late);color:#fff}
 .side h3{font-size:13px;color:var(--ink-soft);font-weight:600;margin:20px 10px 6px}
 .side .tools{margin-top:18px;display:flex;flex-direction:column;gap:6px;padding:0 4px}
+.more{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+#moreBtn.open{background:var(--surface);color:var(--ink)}
 .side select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px;text-overflow:ellipsis}
 @media (max-width:760px){
   .cols{grid-template-columns:1fr}
@@ -135,11 +137,13 @@ button,input,select,textarea{font:inherit;color:inherit}
   .side .tools select{width:100%}
   .side .tools .btn{width:100%}
   /* Botões de ação ocupam a linha inteira para o texto nunca cortar */
-  #syncBtn,#exportBtn,#backupBtn,#restoreBtn,#notifBtn{grid-column:1/-1}
+  #syncBtn,#moreBtn,.more{grid-column:1/-1}
+  .more{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 }
 @media (max-width:420px){
   /* Em telas bem estreitas, empilha tudo em coluna única */
   .side .tools{grid-template-columns:1fr}
+  .more{grid-template-columns:1fr}
 }
 
 /* Barra da lista */
@@ -329,11 +333,15 @@ button,input,select,textarea{font:inherit;color:inherit}
           <option value="status">Agrupar por status</option>
         </select>
         <button class="btn ghost small" id="syncBtn" type="button">Sincronizar dispositivos</button>
-        <button class="btn ghost small" id="exportBtn" type="button">Exportar CSV</button>
-        <button class="btn ghost small" id="backupBtn" type="button">Salvar backup</button>
-        <button class="btn ghost small" id="restoreBtn" type="button">Restaurar backup</button>
-        <input type="file" id="restoreFile" accept=".json,application/json" class="hide">
-        <button class="btn ghost small hide" id="notifBtn" type="button">Ativar notificações</button>
+        <!-- Ações secundárias recolhidas para não poluir a tela -->
+        <button class="btn ghost small" id="moreBtn" type="button" aria-expanded="false">Mais opções ▾</button>
+        <div class="more hide" id="moreBox">
+          <button class="btn ghost small" id="exportBtn" type="button">Exportar CSV</button>
+          <button class="btn ghost small" id="backupBtn" type="button">Salvar backup</button>
+          <button class="btn ghost small" id="restoreBtn" type="button">Restaurar backup</button>
+          <input type="file" id="restoreFile" accept=".json,application/json" class="hide">
+          <button class="btn ghost small hide" id="notifBtn" type="button">Ativar notificações</button>
+        </div>
       </div>
     </aside>
 
@@ -987,6 +995,14 @@ $("dDel").addEventListener("click", ()=>{
   const t = tasks.get(openId); if (!t) return;
   if (!confirm(`Excluir "${t.titulo}"? O histórico dela também será apagado.`)) return;
   const id = openId; closeDrawer(); removeTask(id);
+});
+// Abre/fecha o grupo de ações secundárias ("Mais opções")
+$("moreBtn").addEventListener("click", ()=>{
+  const box = $("moreBox"), btn = $("moreBtn");
+  const aberto = box.classList.toggle("hide") === false;
+  btn.classList.toggle("open", aberto);
+  btn.setAttribute("aria-expanded", String(aberto));
+  btn.textContent = aberto ? "Menos opções ▴" : "Mais opções ▾";
 });
 $("exportBtn").addEventListener("click", exportCSV);
 $("backupBtn").addEventListener("click", backup);
