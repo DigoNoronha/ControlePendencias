@@ -56,7 +56,7 @@
 }
 *,*::before,*::after{box-sizing:inherit}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;overflow-x:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .wrap{max-width:1180px;margin:0 auto;padding:20px 20px 60px}
@@ -121,21 +121,36 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav .n.late{background:var(--late);color:#fff}
 .side h3{font-size:13px;color:var(--ink-soft);font-weight:600;margin:20px 10px 6px}
 .side .tools{margin-top:18px;display:flex;flex-direction:column;gap:6px;padding:0 4px}
-.side select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+.side select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px;text-overflow:ellipsis}
 @media (max-width:760px){
   .cols{grid-template-columns:1fr}
   .side{position:static}
-  .nav{flex-direction:row;overflow-x:auto;padding-bottom:4px}
-  .nav button{width:auto;flex:0 0 auto}
+  /* Navegação em linha com rolagem horizontal suave e sem barra visível */
+  .nav{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav button{width:auto;flex:0 0 auto;white-space:nowrap;scroll-snap-align:start}
   .side h3{display:none}
-  .side .tools{flex-direction:row;flex-wrap:wrap;padding:0;margin-top:10px}
-  .side .tools > *{flex:1 1 140px}
+  /* Ferramentas: filtros lado a lado, ações ocupando a largura total */
+  .side .tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0;margin-top:12px}
+  .side .tools select{width:100%}
+  .side .tools .btn{width:100%}
+  /* Botões de ação ocupam a linha inteira para o texto nunca cortar */
+  #syncBtn,#exportBtn,#backupBtn,#restoreBtn,#notifBtn{grid-column:1/-1}
+}
+@media (max-width:420px){
+  /* Em telas bem estreitas, empilha tudo em coluna única */
+  .side .tools{grid-template-columns:1fr}
 }
 
 /* Barra da lista */
 .bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
 .bar h2{margin:0 auto 0 0;font-size:20px;font-weight:700}
 .search{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:7px 11px;width:220px;max-width:100%}
+@media (max-width:620px){
+  /* Título em cima, busca ocupando a linha inteira embaixo */
+  .bar h2{flex:1 1 100%;margin:0}
+  .search{flex:1 1 100%;width:100%}
+}
 
 /* Linhas de tarefa */
 .group{margin:18px 0 6px;font-size:13px;font-weight:700;color:var(--ink-soft)}
