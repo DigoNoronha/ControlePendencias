@@ -1,0 +1,1273 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+<title>Pauta</title>
+<meta name="description" content="Controle de pendências e tarefas por cliente, com prazos e lembretes.">
+<!-- Acesso mobile / instalação como app na tela inicial -->
+<meta name="theme-color" content="#1F4E79">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pauta">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%231F4E79'/%3E%3Ctext x='50%25' y='56%25' font-family='Arial' font-size='96' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EP%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='14' fill='%231F4E79'/%3E%3Ctext x='50%25' y='58%25' font-family='Arial' font-size='38' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EP%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F5F8; --surface:#FFFFFF; --ink:#18212C; --ink-soft:#5A6675; --line:#DCE1E8;
+  --brand:#1F4E79; --brand-ink:#FFFFFF; --brand-soft:#E2EBF5;
+  --late:#B42318; --late-soft:#FCE9E7;
+  --today:#8A6A00; --today-bg:#FBE58A; --today-soft:#FFF6D1;
+  --done:#2F7D5B; --done-soft:#E4F3EB;
+  --wait:#6B4FA0; --wait-soft:#EFEAF8;
+  --shadow:0 12px 40px rgba(20,32,48,.18);
+  --font:"Figtree", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#11151B; --surface:#1A2028; --ink:#E5E9EF; --ink-soft:#98A3B1; --line:#2B333E;
+    --brand:#86B6E6; --brand-ink:#0E1620; --brand-soft:#1D2D40;
+    --late:#F2877D; --late-soft:#3A1F1D;
+    --today:#F4D35E; --today-bg:#5A4A12; --today-soft:#322B14;
+    --done:#7BCFA4; --done-soft:#1A3227;
+    --wait:#B9A2E8; --wait-soft:#2A2340;
+    --shadow:0 12px 40px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11151B; --surface:#1A2028; --ink:#E5E9EF; --ink-soft:#98A3B1; --line:#2B333E;
+  --brand:#86B6E6; --brand-ink:#0E1620; --brand-soft:#1D2D40;
+  --late:#F2877D; --late-soft:#3A1F1D;
+  --today:#F4D35E; --today-bg:#5A4A12; --today-soft:#322B14;
+  --done:#7BCFA4; --done-soft:#1A3227;
+  --wait:#B9A2E8; --wait-soft:#2A2340;
+  --shadow:0 12px 40px rgba(0,0,0,.5);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 20px 60px}
+
+/* Cabeçalho */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.brand h1{margin:0;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.brand p{margin:6px 0 0;color:var(--ink-soft);font-size:14px}
+.pulse{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:13px;font-weight:600;cursor:pointer}
+.pill b{font-size:15px}
+.pill.late{color:var(--late);border-color:transparent;background:var(--late-soft)}
+.pill.today{color:var(--today);border-color:transparent;background:var(--today-soft)}
+.pill.bell{color:var(--brand);border-color:transparent;background:var(--brand-soft)}
+
+/* Adição rápida */
+.add{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) 170px 150px 100px 110px auto;gap:8px;align-items:center;margin-bottom:18px}
+.add input,.add select,.field input,.field select,.field textarea{background:var(--paper);border:1px solid transparent;border-radius:9px;padding:9px 11px;width:100%;min-width:0}
+.add input:hover,.add select:hover,.field input:hover,.field select:hover,.field textarea:hover{border-color:var(--line)}
+.add input:focus,.add select:focus,.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--brand);background:var(--surface)}
+.add .title{font-size:16px;font-weight:500}
+.btn{border:0;border-radius:9px;padding:9px 16px;font-weight:700;cursor:pointer;background:var(--brand);color:var(--brand-ink);white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:600}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn.danger{background:transparent;color:var(--late);border:1px solid var(--late-soft)}
+@media (max-width:900px){.add{grid-template-columns:1fr 1fr}.add .title{grid-column:1/-1}.add .btn{grid-column:1/-1}}
+@media (max-width:620px){
+  .add{grid-template-columns:1fr;gap:6px}
+  .add input,.add select{font-size:16px;padding:11px 12px} /* 16px evita zoom automático no iOS */
+  .add .btn{padding:12px 16px}
+}
+
+/* Entrada por texto livre (Quem / Oque / Quando) */
+.quickadd{background:var(--brand-soft);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.qa-row{display:flex;gap:8px;align-items:stretch}
+.qa-row textarea{flex:1;min-width:0;resize:none;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:16px;line-height:1.4}
+.qa-row textarea:focus{outline:none;border-color:var(--brand)}
+.qa-mic{display:flex;align-items:center;justify-content:center;padding:0 14px}
+.qa-mic.rec{background:var(--late);color:#fff;border-color:transparent;animation:micpulse 1.1s ease-in-out infinite}
+@keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(180,35,24,.5)}50%{box-shadow:0 0 0 8px rgba(180,35,24,0)}}
+.qa-go{white-space:nowrap}
+.qa-preview{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.qa-chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px}
+.qa-chip b{color:var(--brand)}
+.qa-confirm{margin-left:auto}
+.qa-hint{margin:8px 2px 0;font-size:12px;color:var(--ink-soft)}
+@media (max-width:620px){
+  .qa-go{display:none}
+  .qa-confirm{margin-left:0;flex:1 1 100%}
+  .qa-hint{display:none}
+}
+
+/* Layout */
+.cols{display:grid;grid-template-columns:220px minmax(0,1fr);gap:22px;align-items:start}
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:0;border-radius:9px;padding:8px 10px;cursor:pointer;color:var(--ink-soft);font-weight:600}
+.nav button:hover{background:var(--surface);color:var(--ink)}
+.nav button.on{background:var(--ink);color:var(--paper)}
+.nav .n{font-size:12px;min-width:22px;text-align:center;padding:1px 7px;border-radius:999px;background:var(--line);color:var(--ink)}
+.nav button.on .n{background:var(--paper);color:var(--ink)}
+.nav .n.late{background:var(--late);color:#fff}
+.side h3{font-size:13px;color:var(--ink-soft);font-weight:600;margin:20px 10px 6px}
+.side .tools{margin-top:18px;display:flex;flex-direction:column;gap:6px;padding:0 4px}
+.side select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+@media (max-width:760px){
+  .cols{grid-template-columns:1fr}
+  .side{position:static}
+  .nav{flex-direction:row;overflow-x:auto;padding-bottom:4px}
+  .nav button{width:auto;flex:0 0 auto}
+  .side h3{display:none}
+  .side .tools{flex-direction:row;flex-wrap:wrap;padding:0;margin-top:10px}
+  .side .tools > *{flex:1 1 140px}
+}
+
+/* Barra da lista */
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.bar h2{margin:0 auto 0 0;font-size:20px;font-weight:700}
+.search{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:7px 11px;width:220px;max-width:100%}
+
+/* Linhas de tarefa */
+.group{margin:18px 0 6px;font-size:13px;font-weight:700;color:var(--ink-soft)}
+.list{display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:62px 34px minmax(0,1fr) auto;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer}
+.row:hover{border-color:var(--ink-soft)}
+.row.sel{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
+.stub{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;border-right:1px dashed var(--line);background:var(--paper);line-height:1}
+.stub .d{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.stub .m{font-size:11px;font-weight:700;margin-top:3px;color:var(--ink-soft)}
+.stub.late{background:var(--late);color:#fff;border-right-color:var(--late)}
+.stub.late .m{color:#fff;opacity:.85}
+.stub.today{background:var(--today-bg);color:var(--ink)}
+.stub.today .m{color:var(--ink)}
+.stub.none .d{font-size:18px;color:var(--ink-soft)}
+.stub.fin{background:var(--done-soft);color:var(--done)}
+.stub.fin .m{color:var(--done)}
+.chk{display:flex;align-items:center;justify-content:center}
+.chk button{width:22px;height:22px;border-radius:50%;border:2px solid var(--ink-soft);background:transparent;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+.chk button:hover{border-color:var(--done);background:var(--done-soft)}
+.chk button.on{background:var(--done);border-color:var(--done);color:#fff}
+.body{padding:10px 8px;min-width:0}
+.body .t{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.row.isdone .body .t{text-decoration:line-through;color:var(--ink-soft)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:12.5px;color:var(--ink-soft);align-items:center}
+.tag{padding:1px 8px;border-radius:6px;background:var(--brand-soft);color:var(--brand);font-weight:600}
+.st{padding:1px 8px;border-radius:6px;font-weight:600}
+.st.andamento{background:var(--brand-soft);color:var(--brand)}
+.st.aguardando{background:var(--wait-soft);color:var(--wait)}
+.st.afazer{background:var(--paper);color:var(--ink-soft)}
+.st.concluida{background:var(--done-soft);color:var(--done)}
+.when.late{color:var(--late);font-weight:700}
+.when.today{color:var(--today);font-weight:700}
+.prio{display:flex;align-items:center;padding-right:14px}
+.prio i{display:block;width:6px;height:28px;border-radius:3px;background:var(--line)}
+.prio.alta i{background:var(--late)}
+.prio.media i{background:var(--today-bg)}
+.ico{display:inline-block;vertical-align:-2px}
+
+.empty{padding:40px 20px;text-align:center;color:var(--ink-soft);background:var(--surface);border:1px dashed var(--line);border-radius:14px}
+.empty strong{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+
+/* Histórico geral */
+.feed{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px 16px}
+.feed .it{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.feed .it:last-child{border-bottom:0}
+.feed .when{font-size:12.5px;color:var(--ink-soft)}
+.feed a{color:var(--brand);font-weight:600;cursor:pointer;text-decoration:none}
+.feed a:hover{text-decoration:underline}
+
+/* Painel de detalhes */
+.scrim{position:fixed;inset:0;background:rgba(10,16,24,.35);opacity:0;pointer-events:none;transition:opacity .18s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(520px,100%);background:var(--surface);box-shadow:var(--shadow);transform:translateX(102%);transition:transform .22s ease;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:20}
+.drawer.on{transform:none}
+.dh{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.dh .x{margin-left:auto}
+.db{overflow-y:auto;padding:16px;flex:1}
+.dtitle{width:100%;font-size:20px;font-weight:700;border:1px solid transparent;border-radius:9px;padding:6px 8px;background:transparent;resize:none}
+.dtitle:hover{border-color:var(--line)}
+.dtitle:focus{outline:none;border-color:var(--brand)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:4px}
+.field.full{grid-column:1/-1}
+.seg{display:flex;background:var(--paper);border-radius:10px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:7px 6px;font-weight:600;font-size:13px;cursor:pointer;color:var(--ink-soft)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.quick{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.quick button{border:1px solid var(--line);background:transparent;border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;color:var(--ink-soft)}
+.quick button:hover{color:var(--ink);border-color:var(--ink-soft)}
+.sect{margin-top:22px}
+.sect h4{margin:0 0 8px;font-size:15px}
+.log textarea{min-height:64px}
+.log .btn{margin-top:6px}
+.tl{list-style:none;margin:14px 0 0;padding:0 0 0 14px;border-left:2px solid var(--line)}
+.tl li{position:relative;padding:0 0 12px 10px}
+.tl li::before{content:"";position:absolute;left:-20px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--ink-soft)}
+.tl li.nota::before{background:var(--brand);border-color:var(--brand)}
+.tl li.status::before{border-color:var(--done)}
+.tl .w{font-size:12px;color:var(--ink-soft)}
+.tl .x{white-space:pre-wrap;word-break:break-word}
+.tl li.nota .x{background:var(--brand-soft);padding:6px 9px;border-radius:8px;margin-top:3px}
+.df{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.df .sp{margin-left:auto}
+
+/* Avisos */
+.toasts{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;z-index:30;width:min(380px,calc(100% - 32px))}
+.toast{background:var(--ink);color:var(--paper);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);animation:pop .22s ease}
+.toast .k{font-size:12px;opacity:.75;font-weight:600}
+.toast .t{font-weight:700;margin:2px 0 8px}
+.toast .a{display:flex;gap:6px;flex-wrap:wrap}
+.toast .a button{border:1px solid rgba(255,255,255,.25);background:transparent;color:inherit;border-radius:7px;padding:4px 9px;font-size:12.5px;font-weight:600;cursor:pointer}
+:root[data-theme="dark"] .toast .a button{border-color:rgba(0,0,0,.25)}
+.toast .a button.p{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+.toast.info{padding:10px 14px;font-weight:600}
+@keyframes pop{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.drawer,.scrim{transition:none}.toast{animation:none}}
+
+.note{font-size:13px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:14px}
+.note.err{color:var(--late);background:var(--late-soft);border-color:transparent}
+.hide{display:none!important}
+
+/* Ajustes finos para uso no celular */
+@media (max-width:620px){
+  .wrap{padding:14px 14px 50px}
+  .brand h1{font-size:28px}
+  .field input,.field select,.field textarea,.dtitle{font-size:16px} /* evita zoom automático no iOS */
+  .grid2{grid-template-columns:1fr}
+  .chk button{width:26px;height:26px}
+  .row{grid-template-columns:56px 40px minmax(0,1fr) auto}
+  .seg button{padding:9px 6px}
+  .df .btn,.quick button{padding:9px 12px}
+}
+@media (max-width:520px){
+  .drawer{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Pauta</h1>
+      <p id="hoje"></p>
+    </div>
+    <div class="pulse" id="pulse"></div>
+  </header>
+
+  <div id="notice" class="note hide"></div>
+
+  <!-- Entrada por texto livre: fale/digite e o sistema separa Quem / Oque / Quando -->
+  <section class="quickadd" id="quickAdd">
+    <div class="qa-row">
+      <textarea id="qaText" rows="1" maxlength="300"
+        placeholder="Fale ou digite. Ex.: Ligar para o cliente Apdata sobre o INSS amanhã às 14h"></textarea>
+      <button class="btn ghost qa-mic" id="qaMic" type="button" title="Ditar por voz" aria-label="Ditar por voz">
+        <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg>
+      </button>
+      <button class="btn qa-go" id="qaGo" type="button">Interpretar</button>
+    </div>
+    <div class="qa-preview hide" id="qaPreview">
+      <span class="qa-chip"><b>Quem:</b> <span id="qaWho">—</span></span>
+      <span class="qa-chip"><b>Oque:</b> <span id="qaWhat">—</span></span>
+      <span class="qa-chip"><b>Quando:</b> <span id="qaWhen">—</span></span>
+      <button class="btn small qa-confirm" id="qaConfirm" type="button">Adicionar tarefa</button>
+      <button class="btn ghost small" id="qaEdit" type="button">Preencher manualmente</button>
+    </div>
+    <p class="qa-hint">Dica: inclua um nome de cliente e um prazo (hoje, amanhã, segunda, 25/12, às 14h) que o sistema separa automaticamente.</p>
+  </section>
+
+  <form class="add" id="addForm" autocomplete="off">
+    <input class="title" id="aTitle" placeholder="O que precisa ser feito?" required maxlength="200">
+    <input id="aCliente" list="clientes" placeholder="Cliente" maxlength="60">
+    <input id="aData" type="date" aria-label="Prazo">
+    <input id="aHora" type="time" aria-label="Hora do prazo">
+    <select id="aPrio" aria-label="Prioridade">
+      <option value="baixa">Baixa</option>
+      <option value="media" selected>Média</option>
+      <option value="alta">Alta</option>
+    </select>
+    <button class="btn" type="submit">Adicionar</button>
+  </form>
+  <datalist id="clientes"></datalist>
+
+  <div class="cols">
+    <aside class="side">
+      <nav class="nav" id="nav"></nav>
+      <h3>Filtros</h3>
+      <div class="tools">
+        <select id="fCliente" aria-label="Filtrar por cliente"></select>
+        <select id="fGrupo" aria-label="Agrupar">
+          <option value="">Sem agrupamento</option>
+          <option value="cliente">Agrupar por cliente</option>
+          <option value="status">Agrupar por status</option>
+        </select>
+        <button class="btn ghost small" id="exportBtn" type="button">Exportar CSV</button>
+        <button class="btn ghost small" id="backupBtn" type="button">Salvar backup</button>
+        <button class="btn ghost small" id="restoreBtn" type="button">Restaurar backup</button>
+        <input type="file" id="restoreFile" accept=".json,application/json" class="hide">
+        <button class="btn ghost small hide" id="notifBtn" type="button">Ativar notificações</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="bar">
+        <h2 id="viewTitle"></h2>
+        <input class="search" id="q" type="search" placeholder="Buscar tarefa, cliente ou nota">
+      </div>
+      <div id="content"></div>
+    </main>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" role="dialog" aria-label="Detalhes da tarefa">
+  <div class="dh">
+    <span id="dStatusTag"></span>
+    <button class="btn ghost small x" id="dClose" type="button">Fechar</button>
+  </div>
+  <div class="db" id="dBody">
+    <textarea class="dtitle" id="dTitulo" rows="2" maxlength="200"></textarea>
+
+    <div class="field full" style="margin-top:10px">
+      <label>Status</label>
+      <div class="seg" id="dStatus"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="field"><label for="dCliente">Cliente</label><input id="dCliente" list="clientes" maxlength="60"></div>
+      <div class="field"><label for="dPrio">Prioridade</label>
+        <select id="dPrio"><option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option></select></div>
+      <div class="field"><label for="dData">Prazo</label><input id="dData" type="date"></div>
+      <div class="field"><label for="dHora">Hora do prazo</label><input id="dHora" type="time"></div>
+      <div class="field full"><label for="dLembrete">Lembrete</label>
+        <input id="dLembrete" type="datetime-local">
+        <div class="quick">
+          <button type="button" data-lem="1h">Em 1 hora</button>
+          <button type="button" data-lem="amanha">Amanhã 9h</button>
+          <button type="button" data-lem="vespera">Véspera do prazo, 9h</button>
+          <button type="button" data-lem="limpar">Remover</button>
+        </div>
+      </div>
+      <div class="field full"><label for="dRec">Repetir ao concluir</label>
+        <select id="dRec">
+          <option value="nenhuma">Não repetir</option>
+          <option value="diaria">Todo dia útil</option>
+          <option value="semanal">Toda semana</option>
+          <option value="mensal">Todo mês</option>
+        </select></div>
+      <div class="field full"><label for="dNotas">Notas</label><textarea id="dNotas" rows="3" maxlength="4000"></textarea></div>
+    </div>
+
+    <div class="sect log">
+      <h4>Registrar andamento</h4>
+      <div class="field"><textarea id="dLog" rows="2" placeholder="Ex.: Cliente enviou a planilha de rubricas; falta validar INSS." maxlength="2000"></textarea></div>
+      <button class="btn small" id="dLogBtn" type="button">Registrar</button>
+    </div>
+
+    <div class="sect">
+      <h4>Histórico</h4>
+      <ul class="tl" id="dTl"></ul>
+    </div>
+  </div>
+  <div class="df">
+    <button class="btn ghost small" id="dDup" type="button">Duplicar</button>
+    <button class="btn danger small sp" id="dDel" type="button">Excluir tarefa</button>
+  </div>
+</aside>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- Estado ---------- */
+const STATUS = [
+  {v:"afazer", l:"A fazer"},
+  {v:"andamento", l:"Em andamento"},
+  {v:"aguardando", l:"Aguardando"},
+  {v:"concluida", l:"Concluída"}
+];
+const STATUS_L = Object.fromEntries(STATUS.map(s=>[s.v,s.l]));
+const PRIO_L = {baixa:"Baixa", media:"Média", alta:"Alta"};
+const PRIO_N = {alta:0, media:1, baixa:2};
+const REC_L = {nenhuma:"Não repetir", diaria:"Todo dia útil", semanal:"Toda semana", mensal:"Todo mês"};
+const VIEWS = [
+  {v:"hoje", l:"Hoje e atrasadas"},
+  {v:"semana", l:"Próximos 7 dias"},
+  {v:"aguardando", l:"Aguardando retorno"},
+  {v:"abertas", l:"Todas em aberto"},
+  {v:"concluidas", l:"Concluídas"},
+  {v:"historico", l:"Histórico"}
+];
+
+let tasks = new Map();
+let view = "hoje", fCliente = "", fGrupo = "", query = "";
+let openId = null;
+let mode = "local", col = null, downloads = null, loaded = false;
+const LS_KEY = "pauta:tarefas:v1";
+const toastShown = new Set();
+const $ = id => document.getElementById(id);
+
+/* ---------- Datas ---------- */
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const localDT = d => ymd(d)+"T"+pad(d.getHours())+":"+pad(d.getMinutes());
+const todayStr = () => ymd(new Date());
+const parseD = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+const addDays = (s,n) => { const d = parseD(s); d.setDate(d.getDate()+n); return ymd(d); };
+const daysBetween = (a,b) => Math.round((parseD(b)-parseD(a))/86400000);
+const MES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const SEM = ["dom","seg","ter","qua","qui","sex","sáb"];
+function fmtDT(iso){
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const t = todayStr(), s = ymd(d);
+  const hm = pad(d.getHours())+":"+pad(d.getMinutes());
+  if (s===t) return "hoje, "+hm;
+  if (s===addDays(t,-1)) return "ontem, "+hm;
+  return pad(d.getDate())+"/"+pad(d.getMonth()+1)+(d.getFullYear()!==new Date().getFullYear()?"/"+d.getFullYear():"")+", "+hm;
+}
+function fmtLocal(s){ return s ? fmtDT(new Date(s).toISOString()) : ""; }
+
+function isOpen(t){ return t.status !== "concluida"; }
+function urg(t){
+  if (!isOpen(t)) return "fin";
+  if (!t.prazoData) return "none";
+  const t0 = todayStr();
+  if (t.prazoData < t0) return "late";
+  if (t.prazoData === t0){
+    if (t.prazoHora){
+      const [h,m] = t.prazoHora.split(":").map(Number);
+      const now = new Date();
+      if (now.getHours()*60+now.getMinutes() > h*60+m) return "late";
+    }
+    return "today";
+  }
+  return "future";
+}
+function whenText(t){
+  if (!t.prazoData) return "";
+  const diff = daysBetween(todayStr(), t.prazoData);
+  const h = t.prazoHora ? ", "+t.prazoHora : "";
+  if (!isOpen(t)){ const d=parseD(t.prazoData); return "Prazo "+pad(d.getDate())+"/"+pad(d.getMonth()+1); }
+  if (urg(t)==="late") return diff===0 ? "Atrasada (hoje"+h+")" : "Atrasada há "+(-diff)+(diff===-1?" dia":" dias");
+  if (diff===0) return "Hoje"+h;
+  if (diff===1) return "Amanhã"+h;
+  const d = parseD(t.prazoData);
+  return SEM[d.getDay()]+", "+pad(d.getDate())+"/"+pad(d.getMonth()+1)+h;
+}
+
+/* ---------- Dados ---------- */
+function newId(){
+  if (col) return col.doc().id;
+  return "t"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+}
+function addHist(t, tipo, texto){
+  t.historico = (t.historico||[]).concat([{em:new Date().toISOString(), tipo, texto}]).slice(-150);
+  t.atualizadaEm = new Date().toISOString();
+}
+function clean(t){
+  return {
+    titulo:t.titulo||"", cliente:t.cliente||"", status:t.status||"afazer", prioridade:t.prioridade||"media",
+    prazoData:t.prazoData||"", prazoHora:t.prazoHora||"", lembrete:t.lembrete||"", lembreteVisto:!!t.lembreteVisto,
+    recorrencia:t.recorrencia||"nenhuma", notas:t.notas||"", criadaEm:t.criadaEm||"", atualizadaEm:t.atualizadaEm||"",
+    concluidaEm:t.concluidaEm||"", historico:t.historico||[]
+  };
+}
+const writing = new Map();
+async function persist(t){
+  tasks.set(t.id, t);
+  renderAll();
+  if (mode === "local"){ saveLocal(); return; }
+  let st = writing.get(t.id);
+  if (st && st.busy){ st.next = t; return; }
+  st = {busy:true, next:null}; writing.set(t.id, st);
+  let cur = t;
+  while (cur){
+    try { await col.doc(cur.id).set(clean(cur)); hideNotice(); }
+    catch(e){ showErr(e); }
+    cur = st.next; st.next = null;
+  }
+  st.busy = false;
+}
+async function removeTask(id){
+  tasks.delete(id);
+  renderAll();
+  if (mode === "local"){ saveLocal(); return; }
+  try { await col.doc(id).delete(); } catch(e){ showErr(e); }
+}
+function saveLocal(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify([...tasks.values()])); } catch(e){}
+}
+function loadLocal(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    tasks = new Map(arr.map(t=>[t.id,t]));
+  } catch(e){ tasks = new Map(); }
+}
+function showErr(e){
+  const code = e && e.code;
+  let msg = "Não foi possível salvar a última alteração. Verifique a conexão e tente de novo.";
+  if (code === "quota_exceeded") msg = "O limite de armazenamento foi atingido. Exclua tarefas concluídas antigas para liberar espaço.";
+  if (code === "revoked") msg = "O acesso a esta página mudou. Recarregue para continuar.";
+  const n = $("notice"); n.textContent = msg; n.className = "note err";
+}
+function hideNotice(){ const n=$("notice"); if (n.classList.contains("err")) n.className="note hide"; }
+
+/* ---------- Filtros ---------- */
+function matches(t){
+  if (fCliente && (t.cliente||"") !== fCliente) return false;
+  if (query){
+    const q = query.toLowerCase();
+    const hay = (t.titulo+" "+(t.cliente||"")+" "+(t.notas||"")).toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+function inView(t, v){
+  const t0 = todayStr();
+  switch(v){
+    case "hoje": return isOpen(t) && t.prazoData && t.prazoData <= t0;
+    case "semana": return isOpen(t) && t.prazoData && t.prazoData > t0 && t.prazoData <= addDays(t0,7);
+    case "aguardando": return t.status === "aguardando";
+    case "abertas": return isOpen(t);
+    case "concluidas": return !isOpen(t);
+  }
+  return false;
+}
+function sortOpen(a,b){
+  const ka = a.prazoData ? a.prazoData+(a.prazoHora||"99:99") : "9999";
+  const kb = b.prazoData ? b.prazoData+(b.prazoHora||"99:99") : "9999";
+  if (ka !== kb) return ka < kb ? -1 : 1;
+  return (PRIO_N[a.prioridade]??1) - (PRIO_N[b.prioridade]??1);
+}
+function pendingReminders(){
+  const now = new Date();
+  return [...tasks.values()].filter(t => isOpen(t) && t.lembrete && !t.lembreteVisto && new Date(t.lembrete) <= now);
+}
+
+/* ---------- Render ---------- */
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+const BELL = '<svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+const REP = '<svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
+const CHECK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
+function renderAll(){
+  renderHeader(); renderNav(); renderFilters(); renderContent();
+  if (openId) renderDrawer(false);
+}
+function renderHeader(){
+  const d = new Date();
+  $("hoje").textContent = d.toLocaleDateString("pt-BR",{weekday:"long", day:"numeric", month:"long"});
+  const all = [...tasks.values()];
+  const late = all.filter(t=>urg(t)==="late").length;
+  const today = all.filter(t=>urg(t)==="today").length;
+  const rem = pendingReminders().length;
+  let h = "";
+  if (late) h += `<button class="pill late" data-go="hoje"><b>${late}</b> atrasada${late>1?"s":""}</button>`;
+  if (today) h += `<button class="pill today" data-go="hoje"><b>${today}</b> para hoje</button>`;
+  if (rem) h += `<button class="pill bell" data-go="lembretes">${BELL} <b>${rem}</b> lembrete${rem>1?"s":""}</button>`;
+  if (!h && loaded) h = `<span class="pill" style="cursor:default">Nada atrasado</span>`;
+  $("pulse").innerHTML = h;
+  document.title = (late+rem ? "("+(late+rem)+") " : "") + "Pauta";
+}
+function renderNav(){
+  const all = [...tasks.values()].filter(matches);
+  $("nav").innerHTML = VIEWS.map(v=>{
+    let n = "";
+    if (v.v !== "historico" && v.v !== "concluidas"){
+      const c = all.filter(t=>inView(t,v.v)).length;
+      const hasLate = v.v==="hoje" && all.some(t=>urg(t)==="late");
+      n = `<span class="n${hasLate?" late":""}">${c}</span>`;
+    }
+    return `<button type="button" data-view="${v.v}" class="${view===v.v?"on":""}">${esc(v.l)}${n}</button>`;
+  }).join("");
+}
+function clientes(){
+  return [...new Set([...tasks.values()].map(t=>t.cliente).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+}
+function renderFilters(){
+  const cs = clientes();
+  if (fCliente && !cs.includes(fCliente)) fCliente = "";
+  $("fCliente").innerHTML = `<option value="">Todos os clientes</option>` + cs.map(c=>`<option ${c===fCliente?"selected":""}>${esc(c)}</option>`).join("");
+  $("clientes").innerHTML = cs.map(c=>`<option value="${esc(c)}">`).join("");
+  $("fGrupo").value = fGrupo;
+}
+function rowHTML(t){
+  const u = urg(t);
+  let stub;
+  if (t.prazoData){
+    const d = parseD(t.prazoData);
+    stub = `<div class="stub ${u}"><span class="d">${pad(d.getDate())}</span><span class="m">${MES[d.getMonth()]}</span></div>`;
+  } else {
+    stub = `<div class="stub none ${u==="fin"?"fin":""}"><span class="d">—</span><span class="m">sem prazo</span></div>`;
+  }
+  const done = !isOpen(t);
+  const wt = whenText(t);
+  const meta = [
+    t.cliente ? `<span class="tag">${esc(t.cliente)}</span>` : "",
+    `<span class="st ${t.status}">${STATUS_L[t.status]||""}</span>`,
+    wt ? `<span class="when ${u}">${esc(wt)}</span>` : "",
+    (t.lembrete && isOpen(t)) ? `<span title="Lembrete">${BELL} ${esc(fmtLocal(t.lembrete))}</span>` : "",
+    t.recorrencia && t.recorrencia!=="nenhuma" ? `<span title="${REC_L[t.recorrencia]}">${REP}</span>` : "",
+    done && t.concluidaEm ? `<span>Concluída ${esc(fmtDT(t.concluidaEm))}</span>` : ""
+  ].join("");
+  return `<div class="row ${done?"isdone":""} ${openId===t.id?"sel":""}" data-open="${t.id}" tabindex="0">
+    ${stub}
+    <div class="chk"><button type="button" class="${done?"on":""}" data-toggle="${t.id}" aria-label="${done?"Reabrir":"Concluir"} tarefa">${done?CHECK:""}</button></div>
+    <div class="body"><div class="t">${esc(t.titulo)}</div><div class="meta">${meta}</div></div>
+    <div class="prio ${t.prioridade}" title="Prioridade ${PRIO_L[t.prioridade]||""}"><i></i></div>
+  </div>`;
+}
+function renderContent(){
+  const title = view==="lembretes" ? "Lembretes pendentes" : (VIEWS.find(v=>v.v===view)||{}).l;
+  $("viewTitle").textContent = title;
+  const c = $("content");
+  if (!loaded){ c.innerHTML = `<div class="empty">Carregando suas tarefas…</div>`; return; }
+
+  if (view === "historico"){
+    const items = [];
+    for (const t of tasks.values()){ if (!matches(t)) continue; for (const h of (t.historico||[])) items.push({t,h}); }
+    items.sort((a,b)=> b.h.em.localeCompare(a.h.em));
+    if (!items.length){ c.innerHTML = `<div class="empty"><strong>Sem histórico ainda</strong>Tudo o que você criar, alterar ou registrar aparece aqui.</div>`; return; }
+    c.innerHTML = `<div class="feed">` + items.slice(0,200).map(({t,h})=>
+      `<div class="it"><div class="when">${esc(fmtDT(h.em))}</div><div><a data-open="${t.id}">${esc(t.titulo)}</a>${t.cliente?` <span class="tag">${esc(t.cliente)}</span>`:""}<div class="x" style="white-space:pre-wrap">${esc(h.texto)}</div></div></div>`
+    ).join("") + `</div>`;
+    return;
+  }
+
+  let list;
+  if (view === "lembretes") list = pendingReminders().filter(matches);
+  else list = [...tasks.values()].filter(t=>inView(t,view) && matches(t));
+  if (view === "concluidas") list.sort((a,b)=>(b.concluidaEm||"").localeCompare(a.concluidaEm||""));
+  else list.sort(sortOpen);
+
+  if (!list.length){
+    const msgs = {
+      hoje:["Nada para hoje","Nenhuma tarefa vencida ou com prazo hoje. Adicione uma acima ou veja os próximos dias."],
+      semana:["Semana livre","Nenhum prazo nos próximos 7 dias."],
+      aguardando:["Nada aguardando retorno","Marque uma tarefa como Aguardando quando depender do cliente ou de outra pessoa."],
+      abertas:["Nenhuma tarefa em aberto","Use o campo acima para registrar a primeira."],
+      concluidas:["Nenhuma tarefa concluída",""],
+      lembretes:["Nenhum lembrete pendente",""]
+    };
+    const m = msgs[view] || ["Nada por aqui",""];
+    c.innerHTML = `<div class="empty"><strong>${m[0]}</strong>${m[1]}${query||fCliente?"<br>Há filtros ativos.":""}</div>`;
+    return;
+  }
+
+  if (fGrupo){
+    const key = t => fGrupo==="cliente" ? (t.cliente||"Sem cliente") : STATUS_L[t.status];
+    const groups = new Map();
+    for (const t of list){ const k=key(t); if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(t); }
+    let keys = [...groups.keys()];
+    if (fGrupo==="status") keys.sort((a,b)=>STATUS.findIndex(s=>s.l===a)-STATUS.findIndex(s=>s.l===b));
+    else keys.sort((a,b)=> a==="Sem cliente"?1:b==="Sem cliente"?-1:a.localeCompare(b,"pt-BR"));
+    c.innerHTML = keys.map(k=>`<div class="group">${esc(k)} (${groups.get(k).length})</div><div class="list">${groups.get(k).map(rowHTML).join("")}</div>`).join("");
+  } else {
+    c.innerHTML = `<div class="list">${list.map(rowHTML).join("")}</div>`;
+  }
+}
+
+/* ---------- Painel ---------- */
+function setVal(id, v){ const el=$(id); if (document.activeElement!==el && el.value!==v) el.value = v; }
+function renderDrawer(full){
+  const t = tasks.get(openId);
+  if (!t){ closeDrawer(); return; }
+  setVal("dTitulo", t.titulo);
+  setVal("dCliente", t.cliente||"");
+  setVal("dPrio", t.prioridade||"media");
+  setVal("dData", t.prazoData||"");
+  setVal("dHora", t.prazoHora||"");
+  setVal("dLembrete", t.lembrete||"");
+  setVal("dRec", t.recorrencia||"nenhuma");
+  setVal("dNotas", t.notas||"");
+  $("dStatusTag").innerHTML = `<span class="st ${t.status}">${STATUS_L[t.status]}</span>` + (t.criadaEm?` <span style="font-size:12.5px;color:var(--ink-soft)">criada ${esc(fmtDT(t.criadaEm))}</span>`:"");
+  $("dStatus").innerHTML = STATUS.map(s=>`<button type="button" data-st="${s.v}" class="${t.status===s.v?"on":""}">${s.l}</button>`).join("");
+  const hist = (t.historico||[]).slice().reverse();
+  $("dTl").innerHTML = hist.length ? hist.map(h=>`<li class="${h.tipo}"><div class="w">${esc(fmtDT(h.em))}</div><div class="x">${esc(h.texto)}</div></li>`).join("") : `<li><div class="x">Sem registros.</div></li>`;
+  if (full) $("dBody").scrollTop = 0;
+}
+function openDrawer(id){
+  openId = id;
+  renderDrawer(true);
+  $("drawer").classList.add("on"); $("drawer").setAttribute("aria-hidden","false");
+  $("scrim").classList.add("on");
+  renderContent();
+  setTimeout(()=>$("dTitulo").focus({preventScroll:true}), 60);
+}
+function closeDrawer(){
+  const was = openId;
+  openId = null;
+  $("drawer").classList.remove("on"); $("drawer").setAttribute("aria-hidden","true");
+  $("scrim").classList.remove("on");
+  renderContent();
+  if (was){ const r = document.querySelector(`[data-open="${was}"]`); if (r) r.focus({preventScroll:true}); }
+}
+function cur(){ const t = tasks.get(openId); return t ? structuredClone(t) : null; }
+
+function fmtPrazo(d,h){ if(!d) return "sem prazo"; const x=parseD(d); return pad(x.getDate())+"/"+pad(x.getMonth()+1)+"/"+x.getFullYear()+(h?" "+h:""); }
+
+function commitField(field, value){
+  const t = cur(); if (!t) return;
+  const old = t[field] || "";
+  if (old === value) return;
+  t[field] = value;
+  const labels = {
+    titulo:()=>`Título alterado para "${value}"`,
+    cliente:()=>value?`Cliente: ${old||"nenhum"} → ${value}`:"Cliente removido",
+    prioridade:()=>`Prioridade: ${PRIO_L[old]||old} → ${PRIO_L[value]}`,
+    prazoData:()=>`Prazo: ${fmtPrazo(old,t.prazoHora)} → ${fmtPrazo(value,t.prazoHora)}`,
+    prazoHora:()=>`Hora do prazo: ${old||"sem hora"} → ${value||"sem hora"}`,
+    lembrete:()=>value?`Lembrete definido para ${fmtLocal(value)}`:"Lembrete removido",
+    recorrencia:()=>`Repetição: ${REC_L[value]}`,
+    notas:()=>"Notas editadas"
+  };
+  if (field==="lembrete") t.lembreteVisto = false;
+  if (field==="titulo" && !value.trim()){ renderDrawer(false); return; }
+  addHist(t, field==="notas"||field==="titulo"?"edit":"campo", labels[field]());
+  persist(t);
+}
+
+function nextDate(s, rec){
+  const d = parseD(s);
+  if (rec==="diaria"){ do { d.setDate(d.getDate()+1); } while (d.getDay()===0 || d.getDay()===6); }
+  else if (rec==="semanal") d.setDate(d.getDate()+7);
+  else if (rec==="mensal"){ const day=d.getDate(); d.setDate(1); d.setMonth(d.getMonth()+1); const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate(); d.setDate(Math.min(day,last)); }
+  return ymd(d);
+}
+function setStatus(id, st){
+  const t = structuredClone(tasks.get(id)); if (!t || t.status===st) return;
+  const old = t.status;
+  t.status = st;
+  if (st==="concluida"){ t.concluidaEm = new Date().toISOString(); t.lembreteVisto = true; }
+  else if (old==="concluida"){ t.concluidaEm = ""; }
+  addHist(t, "status", `Status: ${STATUS_L[old]} → ${STATUS_L[st]}`);
+  persist(t);
+
+  if (st==="concluida" && t.recorrencia && t.recorrencia!=="nenhuma"){
+    const base = t.prazoData || todayStr();
+    const nd = nextDate(base, t.recorrencia);
+    let lem = "";
+    if (t.lembrete && t.prazoData){
+      const shift = daysBetween(t.prazoData, nd);
+      const l = new Date(t.lembrete); l.setDate(l.getDate()+shift); lem = localDT(l);
+    }
+    const n = {
+      id:newId(), titulo:t.titulo, cliente:t.cliente, status:"afazer", prioridade:t.prioridade,
+      prazoData:nd, prazoHora:t.prazoHora, lembrete:lem, lembreteVisto:false, recorrencia:t.recorrencia,
+      notas:t.notas, criadaEm:new Date().toISOString(), concluidaEm:"", historico:[]
+    };
+    addHist(n, "campo", `Criada pela repetição (${REC_L[t.recorrencia].toLowerCase()}) após concluir a ocorrência de ${fmtPrazo(t.prazoData,"")}`);
+    persist(n);
+    toastInfo(`Próxima ocorrência criada para ${fmtPrazo(nd,"")}`);
+  }
+}
+
+/* ---------- Lembretes ---------- */
+function checkReminders(){
+  for (const t of pendingReminders()){
+    const key = t.id+"|"+t.lembrete;
+    if (toastShown.has(key)) continue;
+    toastShown.add(key);
+    showReminder(t, key);
+    sysNotify(t);
+  }
+  renderHeader();
+}
+function showReminder(t, key){
+  const el = document.createElement("div");
+  el.className = "toast"; el.dataset.key = key;
+  el.innerHTML = `<div class="k">${BELL} Lembrete${t.cliente?" para "+esc(t.cliente):""}</div>
+    <div class="t">${esc(t.titulo)}</div>
+    <div class="a">
+      <button type="button" class="p" data-r="abrir">Abrir</button>
+      <button type="button" data-r="1h">Adiar 1h</button>
+      <button type="button" data-r="amanha">Amanhã 9h</button>
+      <button type="button" data-r="ok">Dispensar</button>
+    </div>`;
+  el.addEventListener("click", e=>{
+    const b = e.target.closest("button"); if (!b) return;
+    const x = structuredClone(tasks.get(t.id)); el.remove();
+    if (!x) return;
+    const a = b.dataset.r;
+    if (a==="abrir"){ openDrawer(t.id); return; }
+    if (a==="ok"){ x.lembreteVisto = true; addHist(x,"campo","Lembrete dispensado"); }
+    else {
+      const d = new Date();
+      if (a==="1h") d.setHours(d.getHours()+1);
+      else { d.setDate(d.getDate()+1); d.setHours(9,0,0,0); }
+      x.lembrete = localDT(d); x.lembreteVisto = false;
+      addHist(x,"campo",`Lembrete adiado para ${fmtLocal(x.lembrete)}`);
+    }
+    persist(x);
+  });
+  $("toasts").appendChild(el);
+}
+function toastInfo(msg){
+  const el = document.createElement("div");
+  el.className = "toast info"; el.textContent = msg;
+  $("toasts").appendChild(el);
+  setTimeout(()=>el.remove(), 3500);
+}
+function pruneReminderToasts(){
+  document.querySelectorAll(".toast[data-key]").forEach(el=>{
+    const [id, lem] = el.dataset.key.split("|");
+    const t = tasks.get(id);
+    if (!t || !isOpen(t) || t.lembreteVisto || t.lembrete!==lem) el.remove();
+  });
+}
+
+/* ---------- Exportar ---------- */
+function csvCell(v){ v = String(v??""); return /[";\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+async function exportCSV(){
+  const head = ["Título","Cliente","Status","Prioridade","Prazo","Hora","Lembrete","Repetição","Criada em","Concluída em","Notas","Último andamento"];
+  const rows = [...tasks.values()].sort(sortOpen).map(t=>{
+    const last = (t.historico||[]).filter(h=>h.tipo==="nota").pop();
+    return [t.titulo,t.cliente,STATUS_L[t.status],PRIO_L[t.prioridade],t.prazoData?fmtPrazo(t.prazoData,""):"",t.prazoHora,t.lembrete?fmtLocal(t.lembrete):"",REC_L[t.recorrencia||"nenhuma"],t.criadaEm?fmtDT(t.criadaEm):"",t.concluidaEm?fmtDT(t.concluidaEm):"",t.notas,last?last.texto:""];
+  });
+  const csv = "\ufeff" + [head,...rows].map(r=>r.map(csvCell).join(";")).join("\r\n");
+  saveFile("pauta-tarefas-"+todayStr()+".csv", csv, "text/csv;charset=utf-8");
+}
+function saveFile(name, text, mime){
+  const url = URL.createObjectURL(new Blob([text], {type:mime}));
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+/* ---------- Backup ---------- */
+function backup(){
+  const data = {app:"pauta", versao:1, exportadoEm:new Date().toISOString(), tarefas:[...tasks.values()]};
+  saveFile("pauta-backup-"+todayStr()+".json", JSON.stringify(data, null, 1), "application/json");
+  try { localStorage.setItem(LS_KEY+":ultimoBackup", new Date().toISOString()); } catch(e){}
+  toastInfo("Backup salvo na pasta de downloads.");
+}
+function restore(file){
+  const r = new FileReader();
+  r.onload = () => {
+    let arr;
+    try {
+      const d = JSON.parse(r.result);
+      arr = Array.isArray(d) ? d : d.tarefas;
+      if (!Array.isArray(arr)) throw 0;
+    } catch(e){ toastInfo("Arquivo inválido. Escolha um backup gerado pela Pauta."); return; }
+    const novas = arr.filter(t=>t && t.id && !tasks.has(t.id)).length;
+    const iguais = arr.length - novas;
+    if (!confirm(`Restaurar ${arr.length} tarefa(s)?\n${novas} nova(s) serão adicionadas` + (iguais?` e ${iguais} existente(s) serão substituídas pela versão do backup.`:"."))) return;
+    for (const t of arr){ if (t && t.id && t.titulo) tasks.set(t.id, t); }
+    saveLocal(); renderAll(); checkReminders();
+    toastInfo("Backup restaurado.");
+  };
+  r.readAsText(file);
+}
+
+/* ---------- Notificações do sistema ---------- */
+function canNotify(){ return "Notification" in window; }
+function updateNotifBtn(){
+  const b = $("notifBtn");
+  if (!canNotify() || Notification.permission === "granted" || Notification.permission === "denied") b.classList.add("hide");
+  else b.classList.remove("hide");
+}
+function sysNotify(t){
+  if (!canNotify() || Notification.permission !== "granted") return;
+  try {
+    const n = new Notification("Lembrete" + (t.cliente ? " para " + t.cliente : ""), {body:t.titulo, tag:t.id});
+    n.onclick = () => { window.focus(); openDrawer(t.id); n.close(); };
+  } catch(e){}
+}
+
+/* ---------- Eventos ---------- */
+$("addForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const titulo = $("aTitle").value.trim(); if (!titulo) return;
+  const t = {
+    id:newId(), titulo, cliente:$("aCliente").value.trim(), status:"afazer", prioridade:$("aPrio").value,
+    prazoData:$("aData").value, prazoHora:$("aData").value ? $("aHora").value : "", lembrete:"", lembreteVisto:false,
+    recorrencia:"nenhuma", notas:"", criadaEm:new Date().toISOString(), concluidaEm:"", historico:[]
+  };
+  addHist(t, "campo", "Tarefa criada" + (t.prazoData?` com prazo ${fmtPrazo(t.prazoData,t.prazoHora)}`:""));
+  persist(t);
+  if (!inView(t, view) && view!=="historico"){
+    toastInfo(t.prazoData ? "Tarefa adicionada. Ela aparece em Próximos 7 dias ou Todas em aberto." : "Tarefa adicionada em Todas em aberto.");
+  }
+  $("aTitle").value = ""; $("aData").value = ""; $("aHora").value = ""; $("aPrio").value = "media";
+  $("aTitle").focus();
+});
+$("nav").addEventListener("click", e=>{ const b=e.target.closest("[data-view]"); if(!b) return; view=b.dataset.view; renderNav(); renderContent(); });
+$("pulse").addEventListener("click", e=>{ const b=e.target.closest("[data-go]"); if(!b) return; view=b.dataset.go; renderNav(); renderContent(); });
+$("fCliente").addEventListener("change", e=>{ fCliente=e.target.value; renderNav(); renderContent(); });
+$("fGrupo").addEventListener("change", e=>{ fGrupo=e.target.value; renderContent(); });
+let qTimer; $("q").addEventListener("input", e=>{ clearTimeout(qTimer); qTimer=setTimeout(()=>{ query=e.target.value.trim(); renderNav(); renderContent(); },150); });
+$("content").addEventListener("click", e=>{
+  const tg = e.target.closest("[data-toggle]");
+  if (tg){ e.stopPropagation(); const t=tasks.get(tg.dataset.toggle); if(t) setStatus(t.id, isOpen(t)?"concluida":"afazer"); return; }
+  const o = e.target.closest("[data-open]"); if (o) openDrawer(o.dataset.open);
+});
+$("content").addEventListener("keydown", e=>{
+  if (e.key==="Enter" && e.target.matches(".row")) openDrawer(e.target.dataset.open);
+});
+$("scrim").addEventListener("click", closeDrawer);
+$("dClose").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e=>{ if (e.key==="Escape" && openId) closeDrawer(); });
+
+$("dTitulo").addEventListener("change", e=>commitField("titulo", e.target.value.trim()));
+$("dTitulo").addEventListener("keydown", e=>{ if (e.key==="Enter"){ e.preventDefault(); e.target.blur(); } });
+$("dCliente").addEventListener("change", e=>commitField("cliente", e.target.value.trim()));
+$("dPrio").addEventListener("change", e=>commitField("prioridade", e.target.value));
+$("dData").addEventListener("change", e=>commitField("prazoData", e.target.value));
+$("dHora").addEventListener("change", e=>commitField("prazoHora", e.target.value));
+$("dLembrete").addEventListener("change", e=>commitField("lembrete", e.target.value));
+$("dRec").addEventListener("change", e=>commitField("recorrencia", e.target.value));
+$("dNotas").addEventListener("change", e=>commitField("notas", e.target.value));
+$("dStatus").addEventListener("click", e=>{ const b=e.target.closest("[data-st]"); if(b && openId) setStatus(openId, b.dataset.st); });
+document.querySelector(".quick").addEventListener("click", e=>{
+  const b = e.target.closest("[data-lem]"); if (!b) return;
+  const t = tasks.get(openId); if (!t) return;
+  const d = new Date(); let v = "";
+  switch (b.dataset.lem){
+    case "1h": d.setHours(d.getHours()+1); v = localDT(d); break;
+    case "amanha": d.setDate(d.getDate()+1); d.setHours(9,0,0,0); v = localDT(d); break;
+    case "vespera":
+      if (!t.prazoData){ toastInfo("Defina um prazo primeiro."); return; }
+      v = addDays(t.prazoData,-1)+"T09:00"; break;
+    case "limpar": v = ""; break;
+  }
+  $("dLembrete").value = v;
+  commitField("lembrete", v);
+});
+$("dLogBtn").addEventListener("click", ()=>{
+  const txt = $("dLog").value.trim(); if (!txt) return;
+  const t = cur(); if (!t) return;
+  addHist(t, "nota", txt);
+  $("dLog").value = "";
+  persist(t);
+});
+$("dLog").addEventListener("keydown", e=>{ if (e.key==="Enter" && (e.ctrlKey||e.metaKey)){ e.preventDefault(); $("dLogBtn").click(); } });
+$("dDup").addEventListener("click", ()=>{
+  const t = tasks.get(openId); if (!t) return;
+  const n = {...structuredClone(t), id:newId(), status:"afazer", concluidaEm:"", lembreteVisto:false, criadaEm:new Date().toISOString(), historico:[]};
+  n.titulo = t.titulo + " (cópia)";
+  addHist(n, "campo", "Criada como cópia de outra tarefa");
+  persist(n);
+  openDrawer(n.id);
+});
+$("dDel").addEventListener("click", ()=>{
+  const t = tasks.get(openId); if (!t) return;
+  if (!confirm(`Excluir "${t.titulo}"? O histórico dela também será apagado.`)) return;
+  const id = openId; closeDrawer(); removeTask(id);
+});
+$("exportBtn").addEventListener("click", exportCSV);
+$("backupBtn").addEventListener("click", backup);
+$("restoreBtn").addEventListener("click", ()=>$("restoreFile").click());
+$("restoreFile").addEventListener("change", e=>{ const f=e.target.files[0]; if (f) restore(f); e.target.value=""; });
+$("notifBtn").addEventListener("click", async ()=>{
+  try { await Notification.requestPermission(); } catch(e){}
+  updateNotifBtn();
+  if (canNotify() && Notification.permission==="granted") toastInfo("Notificações ativadas.");
+});
+// Mantém abas abertas ao mesmo tempo sincronizadas
+window.addEventListener("storage", e=>{ if (e.key===LS_KEY){ loadLocal(); renderAll(); pruneReminderToasts(); } });
+
+/* ---------- Entrada por texto livre: separa Quem / Oque / Quando ---------- */
+const DIAS_SEMANA = {
+  "domingo":0,"segunda":1,"segunda-feira":1,"terca":2,"terça":2,"terca-feira":2,"terça-feira":2,
+  "quarta":3,"quarta-feira":3,"quinta":4,"quinta-feira":4,"sexta":5,"sexta-feira":5,"sabado":6,"sábado":6
+};
+const MESES_NOME = {
+  "janeiro":1,"fevereiro":2,"marco":3,"março":3,"abril":4,"maio":5,"junho":6,
+  "julho":7,"agosto":8,"setembro":9,"outubro":10,"novembro":11,"dezembro":12
+};
+// Normaliza para comparação (minúsculas, sem acento)
+function semAcento(s){ return s.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+
+// Extrai a hora (ex.: "às 14h", "14:30", "9 horas") -> "HH:MM" ou ""
+function parseHora(texto){
+  let m = texto.match(/(?:\b[àa]s?\s*)?(\d{1,2})\s*[:h]\s*(\d{2})\b/i);
+  if (m) return pad(Math.min(23,+m[1]))+":"+pad(Math.min(59,+m[2]));
+  m = texto.match(/(?:\b[àa]s?\s*)(\d{1,2})\s*(?:h|horas?)?\b/i) || texto.match(/\b(\d{1,2})\s*(?:h|horas?)\b/i);
+  if (m) return pad(Math.min(23,+m[1]))+":00";
+  return "";
+}
+
+// Interpreta a parte "Quando": retorna {data:"YYYY-MM-DD", hora:"HH:MM", trechos:[...regex p/ remover]}
+function parseQuando(textoOriginal){
+  const txt = semAcento(textoOriginal.toLowerCase());
+  const t0 = todayStr();
+  let data = "", hora = parseHora(textoOriginal);
+  const remover = [];
+
+  // 1) Datas relativas
+  if (/\bhoje\b/.test(txt)){ data = t0; remover.push(/\bhoje\b/gi); }
+  else if (/\bamanha\b/.test(txt)){ data = addDays(t0,1); remover.push(/\bamanh[ãa]\b/gi); }
+  else if (/\bdepois de amanha\b/.test(txt)){ data = addDays(t0,2); remover.push(/\bdepois de amanh[ãa]\b/gi); }
+
+  // 2) Dia da semana (próxima ocorrência)
+  if (!data){
+    for (const nome in DIAS_SEMANA){
+      const re = new RegExp("\\b"+nome.replace("-","\\-")+"\\b");
+      if (re.test(txt)){
+        const alvo = DIAS_SEMANA[nome];
+        const base = parseD(t0);
+        let add = (alvo - base.getDay() + 7) % 7;
+        if (add === 0) add = 7; // próxima ocorrência
+        data = addDays(t0, add);
+        remover.push(new RegExp("\\b"+semAcento(nome).replace("-","\\-")+"(?:-feira)?\\b","gi"));
+        remover.push(new RegExp("\\b"+nome.replace("-","\\-")+"(?:-feira)?\\b","gi"));
+        break;
+      }
+    }
+  }
+
+  // 3) Data numérica dd/mm ou dd/mm/aaaa
+  if (!data){
+    const m = textoOriginal.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+    if (m){
+      let ano = m[3] ? +m[3] : new Date().getFullYear();
+      if (ano < 100) ano += 2000;
+      const mes = Math.min(12,Math.max(1,+m[2]));
+      const dia = Math.min(31,Math.max(1,+m[1]));
+      data = ano+"-"+pad(mes)+"-"+pad(dia);
+      remover.push(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g);
+    }
+  }
+
+  // 4) Data por extenso: "dia 25 de dezembro" / "25 de dezembro"
+  if (!data){
+    const m = txt.match(/\b(?:dia\s*)?(\d{1,2})\s+de\s+([a-z]+)/);
+    if (m && MESES_NOME[m[2]]){
+      const ano = new Date().getFullYear();
+      data = ano+"-"+pad(MESES_NOME[m[2]])+"-"+pad(Math.min(31,+m[1]));
+      remover.push(/\b(?:dia\s*)?\d{1,2}\s+de\s+[a-zãçé]+/gi);
+    }
+  }
+
+  // Remover expressões de hora do texto
+  if (hora){
+    remover.push(/\b[àa]s?\s*\d{1,2}\s*[:h]\s*\d{2}\b/gi);
+    remover.push(/\b[àa]s?\s*\d{1,2}\s*(?:h|horas?)\b/gi);
+    remover.push(/\b\d{1,2}\s*[:h]\s*\d{2}\b/gi);
+    remover.push(/\b\d{1,2}\s*(?:h|horas?)\b/gi);
+  }
+  return {data, hora, remover};
+}
+
+// Palavras/padrões que encerram o nome do cliente (não fazem parte dele)
+const QUEM_STOP = "e\\s+eu|e\\s+preciso|sobre|referente|a respeito|quanto|no dia|na data|hoje|amanh[ãa]|depois|dia|[àa]s|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo|enviar|ligar|mandar|fazer|preciso|precisa|devo|tenho que|revisar|validar|preparar|montar|verificar|conferir|cobrar|retornar|responder|agendar|transportar";
+
+// Interpreta o "Quem": procura cliente após "cliente", "para o/a", "do/da"
+function parseQuem(texto){
+  let cliente = "", remover = [];
+  // Encerra o nome em: palavra-chave, pontuação, número/data/hora ou fim
+  const stop = "(?=\\s+(?:"+QUEM_STOP+")\\b|\\s+\\d|[,.;]|$)";
+
+  // 0) Padrão explícito: "o nome do cliente é X" / "o cliente é X" / "cliente chamado X" / "cliente: X"
+  let re = new RegExp("\\b(?:o\\s+)?nome\\s+d[oa]\\s+clientes?\\s+(?:é|eh|e|:)\\s+(.+?)"+stop,"i");
+  let m = texto.match(re);
+  if (!m) m = texto.match(new RegExp("\\b(?:o|a)\\s+clientes?\\s+(?:é|eh|e|:)\\s+(.+?)"+stop,"i"));
+  if (!m) m = texto.match(new RegExp("\\bclientes?\\s+(?:chamad[oa]|de nome|:)\\s+(.+?)"+stop,"i"));
+  if (m){
+    cliente = tituloCliente(m[1].trim());
+    remover.push(new RegExp(m[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i"));
+    return {cliente, remover};
+  }
+
+  // Artigo opcional que pode preceder "cliente" (para o cliente / do cliente)
+  const art = "(?:para|do|da|de|com|ao|[àa])?\\s*(?:o|a|os|as)?\\s*";
+
+  // 1) "[para o] cliente [o/a] Fulano" — artigo opcional como palavra inteira
+  re = new RegExp("\\b"+art+"clientes?\\s+(?:(?:o|a|os|as)\\s+)?([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9 .&_-]{0,40}?)"+stop,"i");
+  m = texto.match(re);
+  if (m){
+    cliente = tituloCliente(m[1].trim());
+    remover.push(new RegExp("\\b"+art+"clientes?\\s+(?:(?:o|a|os|as)\\s+)?"+m[1].trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i"));
+    return {cliente, remover};
+  }
+
+  // 2) "do/da/para o/para a Empresa" — exige inicial maiúscula (nome próprio)
+  re = new RegExp("\\b(?:para|do|da|de|com)\\s+(?:(?:o|a|os|as)\\s+)?([A-ZÀ-Ý][A-Za-zÀ-ÿ0-9 .&_-]{1,30}?)"+stop);
+  m = texto.match(re);
+  if (m){
+    cliente = m[1].trim();
+    remover.push(new RegExp("\\b(?:para|do|da|de|com)\\s+(?:(?:o|a|os|as)\\s+)?"+cliente.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
+  }
+  return {cliente, remover};
+}
+// Deixa o nome do cliente com inicial maiúscula em cada palavra
+function tituloCliente(s){
+  return s.replace(/\s{2,}/g," ").split(" ")
+    .map(p=> p.length>2 ? p.charAt(0).toUpperCase()+p.slice(1) : p)
+    .join(" ");
+}
+
+// Função principal de interpretação
+function interpretar(textoBruto){
+  let resto = " "+textoBruto.trim()+" ";
+  const quando = parseQuando(textoBruto);
+  const quem = parseQuem(textoBruto);
+
+  // Remove trechos reconhecidos para sobrar a descrição (Oque)
+  for (const re of quando.remover.concat(quem.remover)){
+    resto = resto.replace(re, " ");
+  }
+  // Limpa conectores/preposições soltos e espaços
+  resto = resto.replace(/\s+/g," ").trim();
+  // "às" solto (hora já extraída) e preposições penduradas no fim
+  resto = resto.replace(/\s+[àa]s\s*$/i,"");
+  // Colapsa sequências de preposições/artigos deixadas pela remoção (ex.: "para o sobre o")
+  resto = resto.replace(/\b(para|do|da|de|com|sobre|no|na|em|ao|referente|a respeito)\s+(o|a|os|as)\s+(?=(para|do|da|de|com|sobre|no|na|em|ao|referente)\b)/gi," ");
+  // Remove conectivos/introduções no começo (ex.: "e eu preciso", "eu preciso", "preciso")
+  resto = resto.replace(/^(?:e\s+)?(?:eu\s+)?(?:preciso|devo|quero|tenho que|vou|gostaria de|necessito)(?:\s+de)?\s+/i,"");
+  resto = resto
+    .replace(/\b(sobre|referente a|referente|a respeito de|a respeito|no dia|na data|dia|[àa]s|para o|para a|para|em|at[ée]|com o|com a|com)\s*$/i,"")
+    .replace(/^(?:e\s+)?(sobre|referente a|referente|a respeito de|para o|para a|para|no|na|em|com)\s+/i,"")
+    .replace(/\s+(o|a|os|as|do|da|de|para|com|sobre)\s*$/i,"")
+    .replace(/\s{2,}/g," ")
+    .trim();
+  // Primeira letra maiúscula
+  if (resto) resto = resto.charAt(0).toUpperCase()+resto.slice(1);
+
+  return {
+    quem: quem.cliente,
+    oque: resto || textoBruto.trim(),
+    quando: {data:quando.data, hora:quando.hora}
+  };
+}
+
+let qaParsed = null;
+function fmtQuando(q){
+  if (!q.data) return q.hora ? "sem data, "+q.hora : "sem data definida";
+  const d = parseD(q.data);
+  const base = SEM[d.getDay()]+", "+pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear();
+  return q.hora ? base+" às "+q.hora : base;
+}
+function qaMostrar(){
+  const txt = $("qaText").value.trim();
+  if (!txt){ $("qaPreview").classList.add("hide"); qaParsed = null; return; }
+  qaParsed = interpretar(txt);
+  $("qaWho").textContent = qaParsed.quem || "(não identificado)";
+  $("qaWhat").textContent = qaParsed.oque || "(não identificado)";
+  $("qaWhen").textContent = fmtQuando(qaParsed.quando);
+  $("qaPreview").classList.remove("hide");
+}
+function qaCriar(){
+  if (!qaParsed) qaMostrar();
+  if (!qaParsed || !qaParsed.oque){ toastInfo("Não entendi a tarefa. Tente descrever o que precisa ser feito."); return; }
+  const t = {
+    id:newId(), titulo:qaParsed.oque, cliente:qaParsed.quem||"", status:"afazer", prioridade:"media",
+    prazoData:qaParsed.quando.data||"", prazoHora:qaParsed.quando.data?(qaParsed.quando.hora||""):"",
+    lembrete:"", lembreteVisto:false, recorrencia:"nenhuma", notas:"",
+    criadaEm:new Date().toISOString(), concluidaEm:"", historico:[]
+  };
+  addHist(t, "campo", "Tarefa criada por texto livre" + (t.prazoData?` com prazo ${fmtPrazo(t.prazoData,t.prazoHora)}`:""));
+  persist(t);
+  toastInfo("Tarefa adicionada: " + t.titulo);
+  $("qaText").value = ""; $("qaPreview").classList.add("hide"); qaParsed = null;
+  $("qaText").style.height = "auto";
+}
+function qaManual(){
+  if (!qaParsed) return;
+  $("aTitle").value = qaParsed.oque || "";
+  $("aCliente").value = qaParsed.quem || "";
+  $("aData").value = qaParsed.quando.data || "";
+  $("aHora").value = qaParsed.quando.data ? (qaParsed.quando.hora||"") : "";
+  $("qaPreview").classList.add("hide");
+  $("qaText").value = "";
+  $("aTitle").focus();
+}
+
+$("qaGo").addEventListener("click", qaMostrar);
+$("qaConfirm").addEventListener("click", qaCriar);
+$("qaEdit").addEventListener("click", qaManual);
+$("qaText").addEventListener("input", e=>{
+  const el = e.target; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight,120)+"px";
+});
+$("qaText").addEventListener("keydown", e=>{
+  if (e.key==="Enter" && !e.shiftKey){ e.preventDefault(); qaMostrar(); }
+});
+
+/* ---------- Ditado por voz (ideal no celular) ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, recording = false, micStream = null, micPedido = false;
+
+// Pede acesso ao microfone uma única vez e mantém o stream aberto durante a sessão,
+// evitando que o navegador repita o pedido de permissão a cada ditado.
+async function garantirMic(){
+  if (micStream) return true;                 // já concedido nesta sessão
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true; // sem API: deixa o SR cuidar
+  if (micPedido && !micStream) return false;  // já pediu e foi negado
+  micPedido = true;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    return true;
+  } catch(e){
+    micStream = null;
+    toastInfo("Não consegui acesso ao microfone. Verifique a permissão do navegador.");
+    return false;
+  }
+}
+
+function setupVoz(){
+  const btn = $("qaMic");
+  if (!SR){ btn.classList.add("hide"); return; }
+  recog = new SR();
+  recog.lang = "pt-BR";
+  recog.interimResults = true;
+  recog.continuous = false;
+  let base = "";
+  recog.onresult = ev=>{
+    let txt = "";
+    for (let i=0;i<ev.results.length;i++) txt += ev.results[i][0].transcript;
+    $("qaText").value = (base ? base+" " : "") + txt;
+  };
+  recog.onend = ()=>{ recording = false; btn.classList.remove("rec"); qaMostrar(); };
+  recog.onerror = ()=>{ recording = false; btn.classList.remove("rec"); };
+  btn.addEventListener("click", async ()=>{
+    if (recording){ recog.stop(); return; }
+    const ok = await garantirMic();
+    if (!ok) return;
+    base = $("qaText").value.trim();
+    try { recog.start(); recording = true; btn.classList.add("rec"); toastInfo("Pode falar…"); }
+    catch(e){ recording = false; btn.classList.remove("rec"); }
+  });
+}
+setupVoz();
+// Solicita a permissão logo ao abrir o sistema (uma vez), para não interromper o fluxo depois.
+window.addEventListener("load", ()=>{ if (SR) garantirMic(); });
+
+/* ---------- Início ---------- */
+function onData(){
+  loaded = true;
+  renderAll();
+  pruneReminderToasts();
+  checkReminders();
+}
+function start(){
+  mode = "local";
+  let ok = true;
+  try { localStorage.setItem(LS_KEY+":teste","1"); localStorage.removeItem(LS_KEY+":teste"); } catch(e){ ok = false; }
+  if (!ok){
+    const n = $("notice");
+    n.textContent = "Este navegador está bloqueando o armazenamento local. As tarefas não serão salvas ao fechar a página. Abra o arquivo no Chrome ou no Edge.";
+    n.className = "note err";
+  }
+  loadLocal();
+  updateNotifBtn();
+  onData();
+}
+setInterval(()=>{ if (loaded){ checkReminders(); renderNav(); if (!openId || view!=="historico") renderContent(); } }, 30000);
+start();
+})();
+</script>
+</body>
+</html>
