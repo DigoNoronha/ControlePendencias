@@ -17,6 +17,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Firebase (sincronização na nuvem entre dispositivos) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --paper:#F3F5F8; --surface:#FFFFFF; --ink:#18212C; --ink-soft:#5A6675; --line:#DCE1E8;
@@ -234,6 +237,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .note{font-size:13px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:14px}
 .note.err{color:var(--late);background:var(--late-soft);border-color:transparent}
 .hide{display:none!important}
+/* Botão de sincronização ativo */
+#syncBtn.on-sync{background:var(--done-soft);color:var(--done);border-color:transparent}
 
 /* Ajustes finos para uso no celular */
 @media (max-width:620px){
@@ -308,6 +313,7 @@ button,input,select,textarea{font:inherit;color:inherit}
           <option value="cliente">Agrupar por cliente</option>
           <option value="status">Agrupar por status</option>
         </select>
+        <button class="btn ghost small" id="syncBtn" type="button">Sincronizar dispositivos</button>
         <button class="btn ghost small" id="exportBtn" type="button">Exportar CSV</button>
         <button class="btn ghost small" id="backupBtn" type="button">Salvar backup</button>
         <button class="btn ghost small" id="restoreBtn" type="button">Restaurar backup</button>
@@ -1196,54 +1202,95 @@ $("qaText").addEventListener("keydown", e=>{
   if (e.key==="Enter" && !e.shiftKey){ e.preventDefault(); qaMostrar(); }
 });
 
-/* ---------- Ditado por voz (ideal no celular) ---------- */
+/* ---------- Ditado por voz (funciona em desktop e celular) ---------- */
+// Observação: no celular o SpeechRecognition cuida sozinho da permissão de microfone.
+// NÃO usamos getUserMedia aqui de propósito — segurar o stream de áudio atrapalha o
+// reconhecimento no Android/iOS (eles disputam o mesmo microfone).
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recog = null, recording = false, micStream = null, micPedido = false;
+let recog = null, recording = false, recFinal = "";
 
-// Pede acesso ao microfone uma única vez e mantém o stream aberto durante a sessão,
-// evitando que o navegador repita o pedido de permissão a cada ditado.
-async function garantirMic(){
-  if (micStream) return true;                 // já concedido nesta sessão
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true; // sem API: deixa o SR cuidar
-  if (micPedido && !micStream) return false;  // já pediu e foi negado
-  micPedido = true;
-  try {
-    micStream = await navigator.mediaDevices.getUserMedia({audio:true});
-    return true;
-  } catch(e){
-    micStream = null;
-    toastInfo("Não consegui acesso ao microfone. Verifique a permissão do navegador.");
-    return false;
+function msgErroVoz(code){
+  switch(code){
+    case "not-allowed":
+    case "service-not-allowed":
+      return "Permissão de microfone negada. Toque no cadeado da barra de endereços e permita o microfone.";
+    case "no-speech":
+      return "Não captei nenhuma fala. Toque no microfone e fale mais perto.";
+    case "audio-capture":
+      return "Microfone não encontrado. Verifique se outro app não está usando o microfone.";
+    case "network":
+      return "O reconhecimento de voz precisa de internet e não conseguiu conectar.";
+    case "aborted":
+      return "";
+    default:
+      return "Não foi possível reconhecer a fala neste navegador.";
+  }
+}
+
+function pararVoz(){
+  if (recog && recording){ try { recog.stop(); } catch(e){} }
+}
+
+function iniciarVoz(){
+  // Cria uma instância nova a cada uso (mais confiável no celular)
+  recog = new SR();
+  recog.lang = "pt-BR";
+  recog.interimResults = true;
+  recog.continuous = false;
+  recog.maxAlternatives = 1;
+
+  const btn = $("qaMic");
+  const base = $("qaText").value.trim();
+  recFinal = base;
+  let erro = "";
+
+  recog.onstart = ()=>{ recording = true; btn.classList.add("rec"); toastInfo("Pode falar…"); };
+  recog.onresult = ev=>{
+    let fin = "", interim = "";
+    for (let i=ev.resultIndex; i<ev.results.length; i++){
+      const txt = ev.results[i][0].transcript;
+      if (ev.results[i].isFinal) fin += txt; else interim += txt;
+    }
+    if (fin) recFinal = (recFinal ? recFinal+" " : "") + fin.trim();
+    const atual = (recFinal + (interim ? " "+interim : "")).trim();
+    $("qaText").value = atual;
+    // Ajusta a altura do campo conforme digita
+    const el = $("qaText"); el.style.height="auto"; el.style.height=Math.min(el.scrollHeight,120)+"px";
+  };
+  recog.onerror = ev=>{ erro = ev.error || ""; };
+  recog.onend = ()=>{
+    recording = false; btn.classList.remove("rec");
+    $("qaText").value = recFinal.trim();
+    const m = msgErroVoz(erro);
+    if (m) toastInfo(m);
+    if (recFinal.trim()) qaMostrar();
+  };
+
+  try { recog.start(); }
+  catch(e){
+    // start() pode falhar se já havia uma sessão ativa; reseta o estado.
+    recording = false; btn.classList.remove("rec");
+    toastInfo("Tente tocar no microfone novamente.");
   }
 }
 
 function setupVoz(){
   const btn = $("qaMic");
-  if (!SR){ btn.classList.add("hide"); return; }
-  recog = new SR();
-  recog.lang = "pt-BR";
-  recog.interimResults = true;
-  recog.continuous = false;
-  let base = "";
-  recog.onresult = ev=>{
-    let txt = "";
-    for (let i=0;i<ev.results.length;i++) txt += ev.results[i][0].transcript;
-    $("qaText").value = (base ? base+" " : "") + txt;
-  };
-  recog.onend = ()=>{ recording = false; btn.classList.remove("rec"); qaMostrar(); };
-  recog.onerror = ()=>{ recording = false; btn.classList.remove("rec"); };
-  btn.addEventListener("click", async ()=>{
-    if (recording){ recog.stop(); return; }
-    const ok = await garantirMic();
-    if (!ok) return;
-    base = $("qaText").value.trim();
-    try { recog.start(); recording = true; btn.classList.add("rec"); toastInfo("Pode falar…"); }
-    catch(e){ recording = false; btn.classList.remove("rec"); }
+  if (!SR){
+    // Navegador sem suporte (ex.: Firefox): esconde o botão e informa alternativa.
+    btn.classList.add("hide");
+    return;
+  }
+  // Precisa de HTTPS (ou localhost). Em file:// o reconhecimento costuma falhar.
+  if (location.protocol !== "https:" && location.hostname !== "localhost" && location.protocol !== "http:"){
+    // mantém o botão, mas o erro será informado ao tentar
+  }
+  btn.addEventListener("click", ()=>{
+    if (recording){ pararVoz(); return; }
+    iniciarVoz();
   });
 }
 setupVoz();
-// Solicita a permissão logo ao abrir o sistema (uma vez), para não interromper o fluxo depois.
-window.addEventListener("load", ()=>{ if (SR) garantirMic(); });
 
 /* ---------- Início ---------- */
 function onData(){
@@ -1252,6 +1299,107 @@ function onData(){
   pruneReminderToasts();
   checkReminders();
 }
+
+/* ---------- Sincronização na nuvem (Firebase Firestore) ---------- */
+// Config do projeto Firebase. Chaves de cliente (web) — podem ficar no front-end.
+const FIREBASE_CONFIG = {
+  apiKey: "COLE_AQUI_apiKey",
+  authDomain: "COLE_AQUI_authDomain",
+  projectId: "COLE_AQUI_projectId",
+  storageBucket: "COLE_AQUI_storageBucket",
+  messagingSenderId: "COLE_AQUI_messagingSenderId",
+  appId: "COLE_AQUI_appId"
+};
+const SYNC_KEY_LS = "pauta:chaveSync";
+let db = null, unsub = null;
+
+function firebaseConfigurado(){
+  return FIREBASE_CONFIG.projectId && !/^COLE_AQUI/.test(FIREBASE_CONFIG.projectId);
+}
+function normalizaChave(s){
+  return (s||"").trim().toLowerCase().replace(/[^a-z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60);
+}
+function getChaveSync(){ try { return localStorage.getItem(SYNC_KEY_LS) || ""; } catch(e){ return ""; } }
+function setChaveSync(v){ try { v ? localStorage.setItem(SYNC_KEY_LS, v) : localStorage.removeItem(SYNC_KEY_LS); } catch(e){} }
+
+function statusSync(txt, cls){
+  const el = $("syncBtn");
+  if (!el) return;
+  el.textContent = txt;
+  el.classList.toggle("on-sync", cls==="on");
+}
+
+function initFirebase(){
+  if (db) return true;
+  if (!firebaseConfigurado() || typeof firebase === "undefined") return false;
+  try { firebase.initializeApp(FIREBASE_CONFIG); db = firebase.firestore(); return true; }
+  catch(e){ return false; }
+}
+
+// Conecta a sincronização usando a chave informada (mesma chave = mesma lista)
+function conectarSync(chave){
+  chave = normalizaChave(chave);
+  if (!chave) return;
+  if (!initFirebase()){
+    toastInfo("Sincronização indisponível: Firebase não configurado neste arquivo.");
+    return;
+  }
+  setChaveSync(chave);
+  if (unsub){ unsub(); unsub = null; }
+  col = db.collection("pautas").doc(chave).collection("tarefas");
+  mode = "nuvem";
+
+  // Primeira sincronização: envia tarefas locais que ainda não estão na nuvem (merge).
+  const locais = [...tasks.values()];
+  unsub = col.onSnapshot(snap=>{
+    const nuvem = new Map();
+    snap.forEach(d=> nuvem.set(d.id, Object.assign({id:d.id}, d.data())));
+    // Em uma primeira carga vazia na nuvem, sobe o que havia localmente.
+    if (nuvem.size === 0 && locais.length && !snap.metadata.hasPendingWrites){
+      locais.forEach(t=> col.doc(t.id).set(clean(t)));
+    }
+    tasks = nuvem.size || !locais.length ? nuvem : new Map(locais.map(t=>[t.id,t]));
+    loaded = true;
+    renderAll(); pruneReminderToasts(); checkReminders();
+    statusSync("Sincronizado ("+chave+")","on");
+    hideNotice();
+  }, err=>{
+    statusSync("Sincronizar dispositivos","");
+    showErr(err);
+  });
+  statusSync("Conectando…","on");
+}
+
+function desconectarSync(){
+  if (unsub){ unsub(); unsub = null; }
+  col = null; mode = "local"; setChaveSync("");
+  statusSync("Sincronizar dispositivos","");
+  loadLocal(); renderAll();
+  toastInfo("Sincronização desligada. As tarefas voltam a ficar só neste dispositivo.");
+}
+
+// Abre o diálogo de configuração da sincronização
+function abrirSync(){
+  if (!firebaseConfigurado()){
+    const n = $("notice");
+    n.textContent = "A sincronização na nuvem ainda não foi configurada. Falta inserir as credenciais do Firebase no arquivo.";
+    n.className = "note err";
+    return;
+  }
+  const atual = getChaveSync();
+  if (atual){
+    if (confirm(`Este dispositivo está sincronizado com a chave "${atual}".\n\nClique OK para trocar/digitar outra chave, ou Cancelar para desligar a sincronização.`)){
+      const nova = prompt("Digite a chave de sincronização (use a mesma em todos os aparelhos):", atual);
+      if (nova && normalizaChave(nova)) conectarSync(nova);
+    } else {
+      desconectarSync();
+    }
+    return;
+  }
+  const chave = prompt("Crie uma chave de sincronização (uma palavra secreta). Use a MESMA chave no computador e no celular para compartilhar a mesma lista:", "");
+  if (chave && normalizaChave(chave)) conectarSync(chave);
+}
+
 function start(){
   mode = "local";
   let ok = true;
@@ -1263,7 +1411,20 @@ function start(){
   }
   loadLocal();
   updateNotifBtn();
-  onData();
+
+  // Botão de sincronização
+  const sb = $("syncBtn");
+  if (sb) sb.addEventListener("click", abrirSync);
+  if (!firebaseConfigurado()){ statusSync("Sincronizar dispositivos",""); }
+
+  // Reconecta automaticamente se já havia uma chave salva neste dispositivo
+  const chaveSalva = getChaveSync();
+  if (chaveSalva && firebaseConfigurado()){
+    onData();            // mostra o que há localmente enquanto a nuvem carrega
+    conectarSync(chaveSalva);
+  } else {
+    onData();
+  }
 }
 setInterval(()=>{ if (loaded){ checkReminders(); renderNav(); if (!openId || view!=="historico") renderContent(); } }, 30000);
 start();
