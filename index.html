@@ -1383,12 +1383,12 @@ function onData(){
 /* ---------- Sincronização na nuvem (Firebase Firestore) ---------- */
 // Config do projeto Firebase. Chaves de cliente (web) — podem ficar no front-end.
 const FIREBASE_CONFIG = {
-  apiKey: "COLE_AQUI_apiKey",
-  authDomain: "COLE_AQUI_authDomain",
-  projectId: "COLE_AQUI_projectId",
-  storageBucket: "COLE_AQUI_storageBucket",
-  messagingSenderId: "COLE_AQUI_messagingSenderId",
-  appId: "COLE_AQUI_appId"
+  apiKey: "AIzaSyA3voYehwGWj24cFutJhmztMz6FbbPnEbI",
+  authDomain: "controlependencias.firebaseapp.com",
+  projectId: "controlependencias",
+  storageBucket: "controlependencias.firebasestorage.app",
+  messagingSenderId: "528356282485",
+  appId: "1:528356282485:web:0a58098798506e4e9c683c"
 };
 const SYNC_KEY_LS = "pauta:chaveSync";
 let db = null, unsub = null;
@@ -1429,16 +1429,26 @@ function conectarSync(chave){
   col = db.collection("pautas").doc(chave).collection("tarefas");
   mode = "nuvem";
 
-  // Primeira sincronização: envia tarefas locais que ainda não estão na nuvem (merge).
-  const locais = [...tasks.values()];
+  // Guarda as tarefas que existiam localmente antes de conectar (para o merge inicial).
+  const locaisIniciais = [...tasks.values()];
+  let primeiraCarga = true;
+
   unsub = col.onSnapshot(snap=>{
     const nuvem = new Map();
     snap.forEach(d=> nuvem.set(d.id, Object.assign({id:d.id}, d.data())));
-    // Em uma primeira carga vazia na nuvem, sobe o que havia localmente.
-    if (nuvem.size === 0 && locais.length && !snap.metadata.hasPendingWrites){
-      locais.forEach(t=> col.doc(t.id).set(clean(t)));
+
+    if (primeiraCarga){
+      primeiraCarga = false;
+      // Sobe para a nuvem as tarefas locais que ainda não existem lá (não sobrescreve as da nuvem).
+      locaisIniciais.forEach(t=>{
+        if (!nuvem.has(t.id)){
+          nuvem.set(t.id, t);
+          col.doc(t.id).set(clean(t));
+        }
+      });
     }
-    tasks = nuvem.size || !locais.length ? nuvem : new Map(locais.map(t=>[t.id,t]));
+
+    tasks = nuvem;
     loaded = true;
     renderAll(); pruneReminderToasts(); checkReminders();
     statusSync("Sincronizado ("+chave+")","on");
