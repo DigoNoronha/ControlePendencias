@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
-<title>Pauta</title>
-<meta name="description" content="Controle de pendências e tarefas por cliente, com prazos e lembretes.">
+<title>Controle de Atividades</title>
+<meta name="description" content="Controle de atividades e tarefas por cliente, com prazos e lembretes.">
 <!-- Acesso mobile / instalação como app na tela inicial -->
-<meta name="theme-color" content="#1F4E79">
+<meta name="theme-color" content="#1B5E43">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pauta">
+<meta name="apple-mobile-web-app-title" content="Controle de Atividades">
 <meta name="format-detection" content="telephone=no">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%231F4E79'/%3E%3Ctext x='50%25' y='56%25' font-family='Arial' font-size='96' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EP%3C/text%3E%3C/svg%3E">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='14' fill='%231F4E79'/%3E%3Ctext x='50%25' y='58%25' font-family='Arial' font-size='38' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EP%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%231B5E43'/%3E%3Ctext x='50%25' y='56%25' font-family='Arial' font-size='96' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ECA%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='14' fill='%231B5E43'/%3E%3Ctext x='50%25' y='58%25' font-family='Arial' font-size='30' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ECA%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -22,11 +22,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 :root{
-  --paper:#F3F5F8; --surface:#FFFFFF; --ink:#18212C; --ink-soft:#5A6675; --line:#DCE1E8;
-  --brand:#1F4E79; --brand-ink:#FFFFFF; --brand-soft:#E2EBF5;
+  --paper:#F1F5F2; --surface:#FFFFFF; --ink:#18212C; --ink-soft:#5A6675; --line:#D7E2DA;
+  --brand:#1B5E43; --brand-ink:#FFFFFF; --brand-soft:#E3F0E9;
   --late:#B42318; --late-soft:#FCE9E7;
   --today:#8A6A00; --today-bg:#FBE58A; --today-soft:#FFF6D1;
-  --done:#2F7D5B; --done-soft:#E4F3EB;
+  --done:#2F9E5F; --done-soft:#E4F3EB;
   --wait:#6B4FA0; --wait-soft:#EFEAF8;
   --shadow:0 12px 40px rgba(20,32,48,.18);
   --font:"Figtree", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -36,8 +36,8 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --paper:#11151B; --surface:#1A2028; --ink:#E5E9EF; --ink-soft:#98A3B1; --line:#2B333E;
-    --brand:#86B6E6; --brand-ink:#0E1620; --brand-soft:#1D2D40;
+    --paper:#101611; --surface:#19211B; --ink:#E5EFE8; --ink-soft:#97A89D; --line:#283429;
+    --brand:#7BCFA4; --brand-ink:#0C1810; --brand-soft:#1C2E24;
     --late:#F2877D; --late-soft:#3A1F1D;
     --today:#F4D35E; --today-bg:#5A4A12; --today-soft:#322B14;
     --done:#7BCFA4; --done-soft:#1A3227;
@@ -46,8 +46,8 @@
   }
 }
 :root[data-theme="dark"]{
-  --paper:#11151B; --surface:#1A2028; --ink:#E5E9EF; --ink-soft:#98A3B1; --line:#2B333E;
-  --brand:#86B6E6; --brand-ink:#0E1620; --brand-soft:#1D2D40;
+  --paper:#101611; --surface:#19211B; --ink:#E5EFE8; --ink-soft:#97A89D; --line:#283429;
+  --brand:#7BCFA4; --brand-ink:#0C1810; --brand-soft:#1C2E24;
   --late:#F2877D; --late-soft:#3A1F1D;
   --today:#F4D35E; --today-bg:#5A4A12; --today-soft:#322B14;
   --done:#7BCFA4; --done-soft:#1A3227;
@@ -288,7 +288,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1>Pauta</h1>
+      <h1>Controle de Atividades</h1>
       <p id="hoje"></p>
     </div>
     <div class="pulse" id="pulse"></div>
@@ -623,7 +623,7 @@ function renderHeader(){
   if (rem) h += `<button class="pill bell" data-go="lembretes">${BELL} <b>${rem}</b> lembrete${rem>1?"s":""}</button>`;
   if (!h && loaded) h = `<span class="pill" style="cursor:default">Nada atrasado</span>`;
   $("pulse").innerHTML = h;
-  document.title = (late+rem ? "("+(late+rem)+") " : "") + "Pauta";
+  document.title = (late+rem ? "("+(late+rem)+") " : "") + "Controle de Atividades";
 }
 function renderNav(){
   const all = [...tasks.values()].filter(matches);
@@ -915,7 +915,7 @@ function restore(file){
       const d = JSON.parse(r.result);
       arr = Array.isArray(d) ? d : d.tarefas;
       if (!Array.isArray(arr)) throw 0;
-    } catch(e){ toastInfo("Arquivo inválido. Escolha um backup gerado pela Pauta."); return; }
+    } catch(e){ toastInfo("Arquivo inválido. Escolha um backup gerado pelo Controle de Atividades."); return; }
     const novas = arr.filter(t=>t && t.id && !tasks.has(t.id)).length;
     const iguais = arr.length - novas;
     if (!confirm(`Restaurar ${arr.length} tarefa(s)?\n${novas} nova(s) serão adicionadas` + (iguais?` e ${iguais} existente(s) serão substituídas pela versão do backup.`:"."))) return;
